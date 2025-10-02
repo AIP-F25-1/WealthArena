@@ -1,317 +1,195 @@
-# WealthArena Mobile Integration
+# WealthArena - AI Trading Education Platform
 
-🚀 **Mobile SDKs and UI Components** for WealthArena Trading Education Platform
+A comprehensive trading education platform with AI-powered chat, sentiment analysis, and financial data integration.
 
-Transform your existing trading-education + chatbot logic into a mobile-integration block that plugs into existing apps without altering their codebase.
+## 🚀 Quick Setup
 
-## 📱 What's Included
-
-### 1. Backend API (FastAPI)
-- **Versioned endpoints**: `/v1/chat`, `/v1/analyze`, `/v1/state`, `/v1/papertrade`, `/v1/learn`, `/healthz`
-- **Optional authentication**: Bearer token support
-- **CORS configured**: For mobile emulators and localhost
-- **OpenAPI spec**: Auto-generated at `/openapi.json`
-
-### 2. Mobile SDKs
-- **React Native (TypeScript)**: `@wealtharena/mobile-sdk-rn`
-- **Android (Kotlin)**: Retrofit + OkHttp + Coroutines
-- **iOS (Swift)**: URLSession + async/await
-
-### 3. Optional UI Components
-- **React Native**: `@wealtharena/wealtharena-rn` with black/neon-green theme
-- **Drop-in component**: `<WealthArenaScreen />` with Learn | Analyze | Trade | Chat tabs
-
-## 🚀 Quick Start
-
-### 1. Start the Backend
-
+### 1. Environment Setup
 ```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
 # Install dependencies
-uv venv && source .venv/bin/activate
-uv add fastapi uvicorn black ruff mypy pytest pydantic-settings python-dotenv
-
-# Start the server
-uvicorn src.bot.app:app --reload --host 0.0.0.0 --port 8000
+pip install -r requirements.txt
 ```
 
-### 2. Test the API
-
+### 2. Run the API Server
 ```bash
-# Test mobile API
-python test_mobile_api.py
-
-# Manual test
-curl http://localhost:8000/v1/healthz
+python -m uvicorn app.main:app --reload
 ```
 
-### 3. Use Mobile SDKs
+The API will be available at: `http://localhost:8000`
 
-#### React Native
-```typescript
-import { createWealthArenaClient } from '@wealtharena/mobile-sdk-rn';
-import { WealthArenaScreen } from '@wealtharena/wealtharena-rn';
+## 📡 API Endpoints
 
-const client = createWealthArenaClient('http://127.0.0.1:8000');
+### Chat with AI Assistant
+```bash
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8000/v1/chat" -Method POST -ContentType "application/json" -Body '{"message": "What is a P/E ratio?"}'
 
-// Use the drop-in UI component
-<WealthArenaScreen 
-  client={client}
-  onEvent={(event) => console.log('Event:', event)}
-/>
+# curl
+curl -X POST "http://localhost:8000/v1/chat" -H "Content-Type: application/json" -d '{"message": "What is a P/E ratio?"}'
 ```
 
-#### Android
-```kotlin
-import com.wealtharena.mobile.sdk.*
+### Get Stock Prices
+```bash
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8000/v1/chat" -Method POST -ContentType "application/json" -Body '{"message": "price AAPL"}'
 
-val client = createWealthArenaClient("http://10.0.2.2:8000")
-
-lifecycleScope.launch {
-    val response = client.chat(ChatRequest("Explain RSI"))
-    // Handle response
-}
+# curl
+curl -X POST "http://localhost:8000/v1/chat" -H "Content-Type: application/json" -d '{"message": "price AAPL"}'
 ```
 
-#### iOS
-```swift
-import WealthArenaSDK
+### Sentiment Analysis
+```bash
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8000/v1/chat" -Method POST -ContentType "application/json" -Body '{"message": "analyze: The stock market is performing well today"}'
 
-let client = createWealthArenaClient(baseURL: URL(string: "http://127.0.0.1:8000")!)
-
-Task {
-    let response = try await client.chat(ChatRequest(message: "Explain RSI"))
-    // Handle response
-}
+# curl
+curl -X POST "http://localhost:8000/v1/chat" -H "Content-Type: application/json" -d '{"message": "analyze: The stock market is performing well today"}'
 ```
 
-## 📁 Project Structure
+## 📊 Metrics & Monitoring
+
+### API Metrics
+```bash
+# Basic API metrics (if implemented)
+GET http://localhost:8000/v1/metrics/basic
+
+# RSS scraping metrics
+GET http://localhost:8000/v1/metrics/rss
+```
+
+### View Metrics
+```bash
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8000/v1/metrics/rss" -Method GET
+
+# curl
+curl -X GET "http://localhost:8000/v1/metrics/rss"
+```
+
+## 🧪 Testing
+
+### Run Tests with Coverage
+```bash
+# Install test dependencies (if not already installed)
+pip install pytest pytest-cov
+
+# Run tests with coverage
+pytest --cov=app --cov-report xml
+```
+
+### View Coverage Report
+- XML report: `coverage.xml`
+- HTML report: `pytest --cov=app --cov-report html` (creates `htmlcov/` directory)
+
+## 🤖 Machine Learning Models
+
+### Train Sentiment Analysis Model
+1. Open Jupyter notebook:
+   ```bash
+   jupyter notebook notebooks/02_finetune_sentiment.ipynb
+   ```
+
+2. Run all cells to train the DistilBERT sentiment model
+
+3. Copy trained model to API:
+   ```bash
+   # The notebook saves to models/sentiment-finetuned/
+   # The API automatically loads from this location
+   ```
+
+### Train Intent Classification Model
+1. Open Jupyter notebook:
+```bash
+   jupyter notebook notebooks/03_finetune_intent.ipynb
+   ```
+
+2. Run all cells to train the intent classification model
+
+3. Model saves to `models/intent-finetuned/`
+
+## 📈 Progress Reporting Metrics
+
+### API Performance Metrics
+- **Response Time**: Average API response time (ms)
+- **Error Rate**: Percentage of failed requests
+- **Throughput**: Requests per minute
+- **Uptime**: Service availability percentage
+
+### Machine Learning Metrics
+- **Accuracy**: Model prediction accuracy (%)
+- **F1-Score**: Macro-averaged F1 score
+- **Inference Time**: Model prediction speed (ms)
+- **Training Loss**: Model training convergence
+
+### Code Quality Metrics
+- **Test Coverage**: Percentage of code covered by tests
+- **SonarQube Score**: Code quality and security rating
+- **Linting Score**: Code style compliance
+- **Documentation Coverage**: API and code documentation completeness
+
+### RSS Scraping Metrics
+- **Success Rate**: Percentage of successful RSS fetches
+- **Pages per Minute**: RSS feed processing throughput
+- **Error Rate**: Failed RSS requests percentage
+- **Response Time**: Average RSS fetch time
+
+## 🏗️ Project Structure
 
 ```
 WealthArena/
-├── src/bot/
-│   ├── app.py              # Main FastAPI app
-│   ├── api_v1.py           # Versioned mobile API
-│   └── kb.py               # Knowledge base
-├── packages/
-│   ├── mobile-sdk-rn/      # React Native SDK
-│   ├── wealtharena-rn/     # React Native UI components
-│   ├── mobile-sdk-android/ # Android SDK
-│   └── mobile-sdk-ios/     # iOS SDK
-├── examples/
-│   ├── rn-demo/            # React Native demo app
-│   ├── android-demo/       # Android demo app
-│   └── ios-demo/           # iOS demo app
-├── docs/
-│   ├── INTEGRATION_RN.md   # React Native integration guide
-│   ├── INTEGRATION_ANDROID.md # Android integration guide
-│   └── INTEGRATION_IOS.md # iOS integration guide
-└── scripts/
-    └── build-sdks.sh       # Build all SDKs
+├── app/                    # FastAPI application
+│   ├── api/               # API endpoints
+│   ├── models/            # ML model wrappers
+│   ├── tools/             # Utility tools (prices, news)
+│   └── main.py           # Application entry point
+├── notebooks/             # Jupyter notebooks for ML training
+├── models/               # Trained ML models
+├── data/                 # Training data
+└── requirements.txt      # Python dependencies
 ```
 
-## 🔧 Configuration
+## 🔧 Environment Variables
 
-### Environment Variables
-
-Create `.env` file:
+Create a `.env` file in the project root:
 
 ```env
-BASE_URL=http://127.0.0.1:8000
-AUTH_REQUIRED=false
-API_TOKEN=wealtharena-mobile-token
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://10.0.2.2:8000
+# LLM Configuration (Groq API - Free)
+GROQ_API_KEY=your_groq_api_key_here
+
+# Optional: Other API keys
+OPENAI_API_KEY=your_openai_key_here
 ```
 
-### Mobile Emulator URLs
-
-- **Android Emulator**: `http://10.0.2.2:8000`
-- **iOS Simulator**: `http://127.0.0.1:8000`
-- **React Native**: `http://localhost:8000`
-
-## 📚 API Reference
-
-### Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/healthz` | GET | Health check |
-| `/v1/chat` | POST | Chat with trading bot |
-| `/v1/analyze` | POST | Analyze asset with technical indicators |
-| `/v1/state` | GET | Get trading state (balance, positions) |
-| `/v1/papertrade` | POST | Execute paper trade |
-| `/v1/learn` | GET | Get educational content |
-
-## 🛠️ Development
-
-### Build All SDKs
-
-```bash
-# Make script executable
-chmod +x scripts/build-sdks.sh
-
-# Build all SDKs
-./scripts/build-sdks.sh
-```
-
-### Run Tests
-
-```bash
-# Backend tests
-python test_mobile_api.py
-
-# React Native SDK tests
-cd packages/mobile-sdk-rn && npm test
-
-# Android SDK tests
-cd packages/mobile-sdk-android && ./gradlew test
-
-# iOS SDK tests
-cd packages/mobile-sdk-ios && swift test
-```
-
-### Run Demo Apps
-
-```bash
-# React Native demo
-cd examples/rn-demo
-npm install
-npm start
-
-# Android demo
-cd examples/android-demo
-./gradlew installDebug
-
-# iOS demo
-cd examples/ios-demo
-open WealthArenaDemo.xcodeproj
-```
-
-## 🎨 UI Components
-
-### React Native Theme
-
-The React Native UI components use a black/neon-green terminal theme:
-
-```typescript
-const customTheme = {
-  colors: {
-    background: '#0b0f12',    // Dark background
-    primary: '#00ff88',       // Neon green
-    surface: '#1a1f24',       // Card background
-    text: '#ffffff',          // White text
-    textSecondary: '#a0a0a0'  // Gray text
-  }
-};
-```
-
-### Event Handling
-
-The UI components emit events for analytics:
-
-```typescript
-<WealthArenaScreen 
-  client={client}
-  onEvent={(event) => {
-    switch (event.type) {
-      case 'ChatMessage':
-        analytics.track('chat_message', event.data);
-        break;
-      case 'TradePlaced':
-        analytics.track('paper_trade', event.data);
-        break;
-      case 'AnalysisGenerated':
-        analytics.track('analysis_request', event.data);
-        break;
-    }
-  }}
-/>
-```
-
-## 🔒 Security
-
-### Authentication
-
-Optional bearer token authentication:
-
-```bash
-# Set AUTH_REQUIRED=true in .env
-curl -H "Authorization: Bearer your-token" \
-  http://localhost:8000/v1/state
-```
-
-### CORS Configuration
-
-Configured for mobile development:
-
-- `http://localhost:3000` - React Native Metro
-- `http://127.0.0.1:3000` - Local development
-- `http://10.0.2.2:8000` - Android emulator
-- `http://localhost:19006` - Expo
-
-## 🚀 Deployment
-
-### Production Backend
-
-```bash
-# Set production environment
-export BASE_URL=https://api.wealtharena.com
-export AUTH_REQUIRED=true
-export API_TOKEN=your-production-token
-
-# Start with production settings
-uvicorn src.bot.app:app --host 0.0.0.0 --port 8000
-```
-
-### Mobile App Integration
-
-1. **Update base URL** in your mobile app
-2. **Add authentication token** if required
-3. **Test with production backend**
-4. **Deploy to app stores**
-
-## 🐛 Troubleshooting
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **Connection Refused**
-   - Ensure backend is running on correct port
-   - Check firewall settings
-   - Use correct emulator URLs
+1. **Import Errors**: Make sure virtual environment is activated and dependencies installed
+2. **Model Not Found**: Train the sentiment model using the notebook first
+3. **API Connection**: Ensure server is running on correct port (8000)
+4. **RSS Errors**: Some feeds may be blocked - this is normal and tracked in metrics
 
-2. **CORS Errors**
-   - Verify CORS origins in backend
-   - Check mobile emulator configuration
-
-3. **Authentication Errors**
-   - Verify token format: `Bearer your-token`
-   - Check `AUTH_REQUIRED` setting
-
-4. **Build Errors**
-   - Ensure all dependencies are installed
-   - Check TypeScript/Swift/Kotlin versions
-   - Clear build caches
-
-### Debug Mode
-
-Enable debug logging:
-
-```typescript
-// React Native
-const client = createWealthArenaClient('http://127.0.0.1:8000', {
-  debug: true
-});
+### Health Check
+```bash
+# Check if API is running
+curl http://localhost:8000/healthz
 ```
 
-## 📞 Support
+## 📚 Additional Resources
 
-- **Documentation**: [Integration Guides](docs/)
-- **Issues**: [GitHub Issues](https://github.com/wealtharena/mobile-sdk/issues)
-- **Email**: support@wealtharena.com
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+- **API Documentation**: Visit `http://localhost:8000/docs` when server is running
+- **Jupyter Notebooks**: Detailed ML training examples in `notebooks/`
+- **Model Metrics**: Check `metrics_*.json` files for training results
 
 ---
 
-**⚠️ Educational Only**: This platform is for educational purposes only. Not financial advice. Always practice with paper trading first.
+**Happy Trading! 📈🤖**
