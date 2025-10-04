@@ -1,3 +1,0 @@
-"""
-Cryptocurrency data module
-"""

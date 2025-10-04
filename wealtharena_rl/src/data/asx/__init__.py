@@ -1,3 +1,0 @@
-"""
-ASX data module
-"""

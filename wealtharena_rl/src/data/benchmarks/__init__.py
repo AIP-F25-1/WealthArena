@@ -1,3 +1,0 @@
-"""
-Benchmark data module
-"""

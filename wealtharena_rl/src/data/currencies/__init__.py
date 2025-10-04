@@ -1,3 +1,0 @@
-"""
-Currency data module
-"""

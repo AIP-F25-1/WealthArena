@@ -1,3 +1,0 @@
-"""
-Game module for WealthArena
-"""
