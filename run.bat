@@ -30,6 +30,6 @@ echo.
 REM Start the application
 echo 🚀 Starting WealthArena Trading Bot...
 echo.
-python run.py
+python -m app.main
 
 pause

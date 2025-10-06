@@ -5,3 +5,4 @@
 
 export { WealthArenaClient, createWealthArenaClient, WealthArenaError } from './client';
 export * from './types';
+

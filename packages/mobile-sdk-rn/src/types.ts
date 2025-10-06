@@ -117,3 +117,4 @@ export interface EventData {
   data: Record<string, any>;
   timestamp: string;
 }
+

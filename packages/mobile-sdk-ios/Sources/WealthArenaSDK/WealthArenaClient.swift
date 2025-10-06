@@ -188,3 +188,4 @@ private enum HTTPMethod: String {
 public func createWealthArenaClient(baseURL: URL, token: String? = nil) -> WealthArenaClient {
     return WealthArenaClient(baseURL: baseURL, token: token)
 }
+

@@ -276,3 +276,4 @@ fun createWealthArenaClient(baseUrl: String, token: String? = null): WealthArena
         .token(token)
         .build()
 }
+

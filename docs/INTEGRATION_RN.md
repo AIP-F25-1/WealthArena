@@ -323,3 +323,4 @@ For issues and questions:
 - Check the [GitHub repository](https://github.com/wealtharena/mobile-sdk)
 - Review the [API documentation](https://docs.wealtharena.com)
 - Contact support at support@wealtharena.com
+

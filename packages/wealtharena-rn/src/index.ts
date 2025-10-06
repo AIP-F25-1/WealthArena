@@ -5,3 +5,4 @@
 
 export { WealthArenaScreen } from './components/WealthArenaScreen';
 export { defaultTheme, type WealthArenaTheme } from './theme';
+

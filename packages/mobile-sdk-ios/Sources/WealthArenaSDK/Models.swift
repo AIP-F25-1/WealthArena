@@ -154,3 +154,4 @@ public enum WealthArenaError: Error, LocalizedError {
         }
     }
 }
+

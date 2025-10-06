@@ -76,3 +76,4 @@ export const defaultTheme: WealthArenaTheme = {
     lg: 12,
   },
 };
+
