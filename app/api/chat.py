@@ -6,6 +6,7 @@ Chat endpoints for mobile SDKs
 import re
 import random
 import uuid
+import time
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -15,6 +16,7 @@ from datetime import datetime
 from ..llm.client import LLMClient
 from ..tools.prices import PriceTool
 from ..models.sentiment import score as sentiment_score
+from ..metrics.prom import record_chat_request
 
 router = APIRouter()
 
@@ -52,6 +54,7 @@ class ChatResp(BaseModel):
 @router.post("/chat", response_model=ChatResp)
 async def chat_endpoint(request: ChatReq):
     """Chat with the educational trading bot"""
+    start_time = time.time()
     try:
         # Generate trace ID
         trace_id = f"run-{random.randint(10000, 99999)}"
@@ -174,6 +177,10 @@ This analysis is based on a fine-tuned DistilBERT model trained on financial tex
             if card:
                 tools_used.append("trade_setup_card")
         
+        # Record successful chat request
+        latency = time.time() - start_time
+        record_chat_request("success", latency)
+        
         return ChatResp(
             reply=reply,
             tools_used=tools_used,
@@ -182,6 +189,10 @@ This analysis is based on a fine-tuned DistilBERT model trained on financial tex
         )
         
     except Exception as e:
+        # Record failed chat request
+        latency = time.time() - start_time
+        record_chat_request("error", latency)
+        
         return ChatResp(
             reply=f"I apologize, but I encountered an error: {str(e)}. Please try again.",
             tools_used=[],

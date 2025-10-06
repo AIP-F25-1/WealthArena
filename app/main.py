@@ -16,7 +16,12 @@ from .api.export import router as export_router
 from .api.context import router as context_router
 from .api.knowledge import router as knowledge_router
 from .api.metrics import router as metrics_router
+from .api.game import router as game_router
+from .api.game_stream import router as game_stream_router
+from .api.search import router as search_router
+from .api.explain import router as explain_router
 from .middleware.metrics import MetricsMiddleware
+from .metrics.prom import get_metrics_response
 
 # Load environment variables
 load_dotenv()
@@ -56,6 +61,16 @@ app.include_router(export_router, prefix="/v1", tags=["chat-export"])
 app.include_router(context_router, prefix="/v1", tags=["context"])
 app.include_router(knowledge_router, prefix="/v1", tags=["knowledge"])
 app.include_router(metrics_router, prefix="/v1/metrics", tags=["metrics"])
+app.include_router(game_router, prefix="/v1", tags=["game"])
+app.include_router(game_stream_router, prefix="/v1", tags=["game-stream"])
+app.include_router(search_router, prefix="/v1", tags=["search"])
+app.include_router(explain_router, prefix="/v1", tags=["explain"])
+
+# Prometheus metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return get_metrics_response()
 
 @app.get("/")
 async def root():
