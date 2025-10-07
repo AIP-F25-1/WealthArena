@@ -22,6 +22,7 @@ router = APIRouter()
 game_states: Dict[str, Dict[str, Any]] = {}
 active_games: Dict[str, Dict[str, Any]] = {}
 historical_data_cache: Dict[str, pd.DataFrame] = {}
+agent_states: Dict[str, Dict[str, Any]] = {}
 
 # Game episodes data
 EPISODES = [
@@ -160,19 +161,93 @@ class GameSummary(BaseModel):
     trades_count: int
     score: float
 
+class BenchmarkData(BaseModel):
+    """Benchmark data point"""
+    date: str
+    price: float
+    change: float
+    change_percent: float
+
+class BenchmarkResponse(BaseModel):
+    """Benchmark response"""
+    game_id: str
+    symbol: str
+    data: List[BenchmarkData]
+
+class AgentStartRequest(BaseModel):
+    """Request schema for starting an agent"""
+    game_id: str
+    agent_name: str = "MomentumAgent"
+
+class AgentStartResponse(BaseModel):
+    """Response schema for agent start"""
+    agent_id: str
+    game_id: str
+    agent_name: str
+    status: str
+    created_at: str
+
+class AgentTickRequest(BaseModel):
+    """Request schema for agent tick"""
+    agent_id: str
+
+class AgentTickResponse(BaseModel):
+    """Response schema for agent tick"""
+    agent_id: str
+    current_date: str
+    action: str  # "BUY", "SELL", "HOLD"
+    reason: str
+    sma10: float
+    current_price: float
+    portfolio: Portfolio
+
+class AgentPortfolioResponse(BaseModel):
+    """Response schema for agent portfolio"""
+    agent_id: str
+    portfolio: Portfolio
+    total_trades: int
+    performance: Dict[str, float]
+
+class AgentTrade(BaseModel):
+    """Agent trade record"""
+    trade_id: str
+    agent_id: str
+    date: str
+    action: str
+    symbol: str
+    quantity: int
+    price: float
+    reason: str
+
 @router.get("/game/episodes", response_model=List[Episode])
 async def get_episodes():
     """Get available game episodes"""
-    return [Episode(**episode) for episode in EPISODES]
+    episodes = [Episode(**episode) for episode in EPISODES]
+    
+    # Add random episode option
+    random_episode = Episode(
+        id="random",
+        name="Random Episode",
+        start="",
+        end="",
+        description="Select a random historical market episode for an unpredictable challenge"
+    )
+    episodes.append(random_episode)
+    
+    return episodes
 
 @router.post("/game/start", response_model=GameStartResponse)
 async def start_game(request: GameStartRequest):
     """Start a new game session"""
     
-    # Validate episode exists
-    episode = next((ep for ep in EPISODES if ep["id"] == request.episode_id), None)
-    if not episode:
-        raise HTTPException(status_code=404, detail=f"Episode '{request.episode_id}' not found")
+    # Validate episode exists or handle random selection
+    if request.episode_id == "random":
+        # Select a random episode uniformly
+        episode = random.choice(EPISODES)
+    else:
+        episode = next((ep for ep in EPISODES if ep["id"] == request.episode_id), None)
+        if not episode:
+            raise HTTPException(status_code=404, detail=f"Episode '{request.episode_id}' not found")
     
     # Validate difficulty
     if request.difficulty not in DIFFICULTY_LEVELS:
@@ -199,7 +274,7 @@ async def start_game(request: GameStartRequest):
     game_state = {
         "game_id": game_id,
         "user_id": request.user_id,
-        "episode_id": request.episode_id,
+        "episode_id": episode["id"],  # Use the actual episode ID (not "random")
         "difficulty": request.difficulty,
         "portfolio": initial_portfolio,
         "transactions": [],
@@ -501,6 +576,360 @@ async def get_game_summary(game_id: str = Query(...)):
         score=round(score, 1)
     )
 
+@router.get("/game/benchmark", response_model=BenchmarkResponse)
+async def get_benchmark_data(game_id: str = Query(...)):
+    """Get daily benchmark data (SPY) aligned to game dates"""
+    if game_id not in game_states:
+        raise HTTPException(status_code=404, detail="Game not found")
+    
+    game_state = game_states[game_id]
+    
+    # Get episode info
+    episode_id = game_state["episode_id"]
+    episode = next((ep for ep in EPISODES if ep["id"] == episode_id), None)
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    
+    # Load historical data if not cached
+    if game_id not in historical_data_cache:
+        await _load_historical_data(game_id, game_state)
+    
+    # Get SPY data from cache
+    historical_data = historical_data_cache[game_id]
+    if "SPY" not in historical_data:
+        raise HTTPException(status_code=404, detail="SPY benchmark data not available for this game period")
+    
+    spy_data = historical_data["SPY"]
+    
+    # Filter data to game episode dates
+    start_date = datetime.strptime(episode["start"], "%Y-%m-%d")
+    end_date = datetime.strptime(episode["end"], "%Y-%m-%d")
+    
+    # Filter data to episode date range
+    episode_data = spy_data[(spy_data.index.date >= start_date.date()) & 
+                           (spy_data.index.date <= end_date.date())]
+    
+    if len(episode_data) == 0:
+        raise HTTPException(status_code=404, detail="No benchmark data available for the game episode period")
+    
+    # Convert to benchmark data points
+    benchmark_data = []
+    prev_price = None
+    
+    for date_idx, row in episode_data.iterrows():
+        current_price = float(row["Close"])
+        
+        if prev_price is not None:
+            change = current_price - prev_price
+            change_percent = (change / prev_price) * 100
+        else:
+            change = 0.0
+            change_percent = 0.0
+        
+        benchmark_data.append(BenchmarkData(
+            date=date_idx.strftime("%Y-%m-%d"),
+            price=current_price,
+            change=round(change, 2),
+            change_percent=round(change_percent, 2)
+        ))
+        
+        prev_price = current_price
+    
+    return BenchmarkResponse(
+        game_id=game_id,
+        symbol="SPY",
+        data=benchmark_data
+    )
+
+@router.post("/game/agent/start", response_model=AgentStartResponse)
+async def start_agent(request: AgentStartRequest):
+    """Start a new trading agent for a game"""
+    if request.game_id not in game_states:
+        raise HTTPException(status_code=404, detail="Game not found")
+    
+    game_state = game_states[request.game_id]
+    
+    # Generate unique agent ID
+    agent_id = str(uuid.uuid4())
+    
+    # Create agent state
+    agent_state = {
+        "agent_id": agent_id,
+        "game_id": request.game_id,
+        "agent_name": request.agent_name,
+        "status": "active",
+        "created_at": datetime.now().isoformat(),
+        "current_date": game_state["current_date"],
+        "portfolio": {
+            "cash": 100000.0,  # Starting cash for agent
+            "holdings": [],
+            "equity": 100000.0,
+            "total_value": 100000.0
+        },
+        "trades": [],
+        "total_trades": 0
+    }
+    
+    # Store agent state
+    agent_states[agent_id] = agent_state
+    
+    # Persist agent state
+    await _save_agent_state(agent_id, agent_state)
+    
+    return AgentStartResponse(
+        agent_id=agent_id,
+        game_id=request.game_id,
+        agent_name=request.agent_name,
+        status="active",
+        created_at=agent_state["created_at"]
+    )
+
+@router.post("/game/agent/tick", response_model=AgentTickResponse)
+async def agent_tick(request: AgentTickRequest):
+    """Execute agent trading logic based on momentum rule"""
+    if request.agent_id not in agent_states:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    agent_state = agent_states[request.agent_id]
+    game_id = agent_state["game_id"]
+    
+    if game_id not in game_states:
+        raise HTTPException(status_code=404, detail="Game not found")
+    
+    game_state = game_states[game_id]
+    
+    # Load historical data if not cached
+    if game_id not in historical_data_cache:
+        await _load_historical_data(game_id, game_state)
+    
+    # Get current date from game
+    current_date = datetime.strptime(game_state["current_date"], "%Y-%m-%d")
+    
+    # Get SPY data
+    historical_data = historical_data_cache[game_id]
+    if "SPY" not in historical_data:
+        raise HTTPException(status_code=404, detail="SPY data not available")
+    
+    spy_data = historical_data["SPY"]
+    
+    # Get current SPY price
+    current_price = _get_price_for_date(historical_data, "SPY", current_date)
+    if current_price is None:
+        raise HTTPException(status_code=400, detail=f"SPY price not available for {current_date.strftime('%Y-%m-%d')}")
+    
+    # Calculate SMA10
+    sma10 = _calculate_sma(spy_data, current_date, 10)
+    if sma10 is None:
+        raise HTTPException(status_code=400, detail="Insufficient data to calculate SMA10")
+    
+    # Apply momentum rule: if close > SMA10 then buy SPY, else hold cash
+    action = "HOLD"
+    reason = ""
+    
+    if current_price > sma10:
+        # Buy SPY if not already holding
+        current_holding = next((h for h in agent_state["portfolio"]["holdings"] if h["symbol"] == "SPY"), None)
+        if not current_holding:
+            action = "BUY"
+            reason = f"Price {current_price:.2f} > SMA10 {sma10:.2f} - Momentum signal"
+        else:
+            action = "HOLD"
+            reason = f"Already holding SPY. Price {current_price:.2f} > SMA10 {sma10:.2f}"
+    else:
+        # Sell SPY if holding
+        current_holding = next((h for h in agent_state["portfolio"]["holdings"] if h["symbol"] == "SPY"), None)
+        if current_holding:
+            action = "SELL"
+            reason = f"Price {current_price:.2f} <= SMA10 {sma10:.2f} - Exit signal"
+        else:
+            action = "HOLD"
+            reason = f"Price {current_price:.2f} <= SMA10 {sma10:.2f} - Stay in cash"
+    
+    # Execute the action
+    if action == "BUY":
+        # Buy SPY with all available cash
+        available_cash = agent_state["portfolio"]["cash"]
+        shares_to_buy = int(available_cash / current_price)
+        if shares_to_buy > 0:
+            cost = shares_to_buy * current_price
+            agent_state["portfolio"]["cash"] -= cost
+            agent_state["portfolio"]["holdings"] = [{
+                "symbol": "SPY",
+                "shares": shares_to_buy,
+                "avg_price": current_price,
+                "current_price": current_price,
+                "value": cost
+            }]
+            
+            # Record trade
+            trade = {
+                "trade_id": str(uuid.uuid4()),
+                "agent_id": request.agent_id,
+                "date": current_date.strftime("%Y-%m-%d"),
+                "action": "BUY",
+                "symbol": "SPY",
+                "quantity": shares_to_buy,
+                "price": current_price,
+                "reason": reason
+            }
+            agent_state["trades"].append(trade)
+            agent_state["total_trades"] += 1
+    
+    elif action == "SELL":
+        # Sell all SPY holdings
+        current_holding = next((h for h in agent_state["portfolio"]["holdings"] if h["symbol"] == "SPY"), None)
+        if current_holding:
+            shares_to_sell = current_holding["shares"]
+            proceeds = shares_to_sell * current_price
+            agent_state["portfolio"]["cash"] += proceeds
+            agent_state["portfolio"]["holdings"] = []
+            
+            # Record trade
+            trade = {
+                "trade_id": str(uuid.uuid4()),
+                "agent_id": request.agent_id,
+                "date": current_date.strftime("%Y-%m-%d"),
+                "action": "SELL",
+                "symbol": "SPY",
+                "quantity": shares_to_sell,
+                "price": current_price,
+                "reason": reason
+            }
+            agent_state["trades"].append(trade)
+            agent_state["total_trades"] += 1
+    
+    # Update portfolio values
+    total_holdings_value = sum(holding["value"] for holding in agent_state["portfolio"]["holdings"])
+    agent_state["portfolio"]["equity"] = agent_state["portfolio"]["cash"] + total_holdings_value
+    agent_state["portfolio"]["total_value"] = agent_state["portfolio"]["equity"]
+    
+    # Update current date
+    agent_state["current_date"] = current_date.strftime("%Y-%m-%d")
+    
+    # Save agent state
+    await _save_agent_state(request.agent_id, agent_state)
+    
+    return AgentTickResponse(
+        agent_id=request.agent_id,
+        current_date=agent_state["current_date"],
+        action=action,
+        reason=reason,
+        sma10=round(sma10, 2),
+        current_price=round(current_price, 2),
+        portfolio=Portfolio(
+            cash=agent_state["portfolio"]["cash"],
+            holdings=[Holding(**holding) for holding in agent_state["portfolio"]["holdings"]],
+            equity=agent_state["portfolio"]["equity"],
+            total_value=agent_state["portfolio"]["total_value"]
+        )
+    )
+
+@router.get("/game/agent/portfolio", response_model=AgentPortfolioResponse)
+async def get_agent_portfolio(agent_id: str = Query(...)):
+    """Get agent portfolio"""
+    if agent_id not in agent_states:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    agent_state = agent_states[agent_id]
+    
+    # Calculate performance metrics
+    initial_cash = 100000.0
+    current_value = agent_state["portfolio"]["total_value"]
+    return_pct = ((current_value - initial_cash) / initial_cash) * 100
+    
+    performance = {
+        "return_pct": round(return_pct, 2),
+        "total_trades": agent_state["total_trades"],
+        "current_value": round(current_value, 2)
+    }
+    
+    return AgentPortfolioResponse(
+        agent_id=agent_id,
+        portfolio=Portfolio(
+            cash=agent_state["portfolio"]["cash"],
+            holdings=[Holding(**holding) for holding in agent_state["portfolio"]["holdings"]],
+            equity=agent_state["portfolio"]["equity"],
+            total_value=agent_state["portfolio"]["total_value"]
+        ),
+        total_trades=agent_state["total_trades"],
+        performance=performance
+    )
+
+@router.get("/game/agent/trades", response_model=List[AgentTrade])
+async def get_agent_trades(agent_id: str = Query(...)):
+    """Get agent trade history"""
+    if agent_id not in agent_states:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    agent_state = agent_states[agent_id]
+    
+    return [AgentTrade(**trade) for trade in agent_state["trades"]]
+
+def _calculate_sma(data: pd.DataFrame, target_date: datetime, period: int) -> Optional[float]:
+    """Calculate Simple Moving Average for a given period"""
+    try:
+        # Get data up to and including the target date
+        target_date_str = target_date.strftime("%Y-%m-%d")
+        available_dates = [d.strftime("%Y-%m-%d") for d in data.index]
+        
+        # Find the target date or the closest previous date
+        if target_date_str in available_dates:
+            end_date = target_date_str
+        else:
+            # Find the closest previous date
+            previous_dates = [d for d in available_dates if d <= target_date_str]
+            if not previous_dates:
+                return None
+            end_date = max(previous_dates)
+        
+        # Get the index of the end date
+        end_idx = available_dates.index(end_date)
+        
+        # Need at least 'period' data points
+        if end_idx < period - 1:
+            return None
+        
+        # Calculate SMA for the last 'period' days
+        start_idx = end_idx - period + 1
+        sma_data = data.iloc[start_idx:end_idx + 1]["Close"]
+        
+        return float(sma_data.mean())
+        
+    except Exception as e:
+        print(f"Warning: Failed to calculate SMA: {e}")
+        return None
+
+async def _save_agent_state(agent_id: str, agent_state: Dict[str, Any]) -> None:
+    """Save agent state to JSON file"""
+    try:
+        data_dir = Path("data/game_state")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_path = data_dir / f"agent_{agent_id}.json"
+        
+        with open(file_path, 'w') as f:
+            json.dump(agent_state, f, indent=2, default=str)
+            
+    except Exception as e:
+        # Log error but don't fail the request
+        print(f"Warning: Failed to save agent state for {agent_id}: {e}")
+
+async def _load_agent_state(agent_id: str) -> Optional[Dict[str, Any]]:
+    """Load agent state from JSON file"""
+    try:
+        data_dir = Path("data/game_state")
+        file_path = data_dir / f"agent_{agent_id}.json"
+        
+        if not file_path.exists():
+            return None
+            
+        with open(file_path, 'r') as f:
+            return json.load(f)
+            
+    except Exception as e:
+        print(f"Warning: Failed to load agent state for {agent_id}: {e}")
+        return None
+
 def _calculate_performance_metrics(game_state: Dict[str, Any], episode: Dict[str, Any]) -> tuple[float, float]:
     """Calculate Sharpe ratio and max drawdown from equity curve"""
     try:
@@ -677,7 +1106,7 @@ def _get_price_for_date(historical_data: Dict[str, pd.DataFrame], symbol: str, t
         target_date_str = target_date.strftime("%Y-%m-%d")
         
         # Find the closest date (forward fill)
-        available_dates = data.index.strftime("%Y-%m-%d").tolist()
+        available_dates = [d.strftime("%Y-%m-%d") for d in data.index]
         
         # Find exact match or next available date
         if target_date_str in available_dates:

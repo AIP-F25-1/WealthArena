@@ -1,368 +1,267 @@
 """
 WealthArena Context API
-Current trading context and user state management
+Context and knowledge endpoints for mobile SDKs
 """
 
-import sqlite3
-import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 router = APIRouter()
 
-# Database file path (same as history)
-DB_PATH = "data/chat_history.db"
-
-class RecentPrediction(BaseModel):
+class TradeSetupCard(BaseModel):
+    """Trade setup card schema for structured responses"""
     symbol: str
-    signal: str
-    confidence: float
+    name: str
+    signal: str  # "BUY", "SELL", "HOLD"
+    confidence: float  # 0.0 to 1.0
     price: float
-    created_at: str
+    entry: float
+    tp: List[float]  # Take profit levels
+    sl: float  # Stop loss
+    indicators: Dict[str, Any]  # Technical indicators
+    reasoning: str
+    updated_at: datetime
 
 class CurrentContext(BaseModel):
-    active_symbol: Optional[str]
-    current_signal: Optional[str]
-    recent_predictions: List[RecentPrediction]
+    """Current context derived from last TradeSetupCard"""
+    user_id: str
+    last_setup: Optional[TradeSetupCard] = None
+    context_summary: str
+    active_symbols: List[str]
+    last_updated: datetime
 
-def init_database():
-    """Initialize SQLite database with required tables"""
-    # Ensure data directory exists
-    os.makedirs("data", exist_ok=True)
-    
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    # Create chat_history table if it doesn't exist
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            message TEXT NOT NULL,
-            reply TEXT NOT NULL,
-            meta TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    conn.commit()
-    conn.close()
+class KnowledgeTopic(BaseModel):
+    """Knowledge topic schema"""
+    id: str
+    title: str
+    description: str
+    category: str
+    difficulty: str  # "beginner", "intermediate", "advanced"
+    tags: List[str]
 
-# Initialize database on module load
-init_database()
+# Static knowledge topics
+KNOWLEDGE_TOPICS = [
+    {
+        "id": "technical_analysis_basics",
+        "title": "Technical Analysis Basics",
+        "description": "Learn the fundamentals of reading charts, support/resistance, and basic patterns",
+        "category": "Technical Analysis",
+        "difficulty": "beginner",
+        "tags": ["charts", "patterns", "support", "resistance"]
+    },
+    {
+        "id": "candlestick_patterns",
+        "title": "Candlestick Patterns",
+        "description": "Master common candlestick patterns like doji, hammer, engulfing patterns",
+        "category": "Technical Analysis",
+        "difficulty": "beginner",
+        "tags": ["candlesticks", "patterns", "reversal", "continuation"]
+    },
+    {
+        "id": "moving_averages",
+        "title": "Moving Averages",
+        "description": "Understanding SMA, EMA, and how to use them for trend analysis",
+        "category": "Technical Analysis",
+        "difficulty": "beginner",
+        "tags": ["moving_averages", "trend", "sma", "ema"]
+    },
+    {
+        "id": "rsi_oscillator",
+        "title": "RSI Oscillator",
+        "description": "Learn to use the Relative Strength Index for overbought/oversold signals",
+        "category": "Technical Analysis",
+        "difficulty": "intermediate",
+        "tags": ["rsi", "oscillator", "momentum", "overbought", "oversold"]
+    },
+    {
+        "id": "macd_indicator",
+        "title": "MACD Indicator",
+        "description": "Master the Moving Average Convergence Divergence for trend changes",
+        "category": "Technical Analysis",
+        "difficulty": "intermediate",
+        "tags": ["macd", "trend", "divergence", "signal_line"]
+    },
+    {
+        "id": "bollinger_bands",
+        "title": "Bollinger Bands",
+        "description": "Use Bollinger Bands for volatility analysis and mean reversion",
+        "category": "Technical Analysis",
+        "difficulty": "intermediate",
+        "tags": ["bollinger_bands", "volatility", "mean_reversion", "squeeze"]
+    },
+    {
+        "id": "risk_management",
+        "title": "Risk Management",
+        "description": "Essential principles of position sizing, stop losses, and portfolio protection",
+        "category": "Risk Management",
+        "difficulty": "beginner",
+        "tags": ["risk", "position_sizing", "stop_loss", "portfolio"]
+    },
+    {
+        "id": "position_sizing",
+        "title": "Position Sizing",
+        "description": "Learn how to calculate appropriate position sizes based on risk tolerance",
+        "category": "Risk Management",
+        "difficulty": "intermediate",
+        "tags": ["position_sizing", "risk_per_trade", "kelly_criterion"]
+    },
+    {
+        "id": "market_psychology",
+        "title": "Market Psychology",
+        "description": "Understand market sentiment, fear, greed, and behavioral finance",
+        "category": "Psychology",
+        "difficulty": "intermediate",
+        "tags": ["psychology", "sentiment", "fear", "greed", "behavioral_finance"]
+    },
+    {
+        "id": "trading_plan",
+        "title": "Trading Plan Development",
+        "description": "Create a systematic approach to trading with clear rules and strategies",
+        "category": "Strategy",
+        "difficulty": "intermediate",
+        "tags": ["trading_plan", "strategy", "rules", "systematic"]
+    },
+    {
+        "id": "backtesting",
+        "title": "Backtesting Strategies",
+        "description": "Learn to test trading strategies on historical data before live trading",
+        "category": "Strategy",
+        "difficulty": "advanced",
+        "tags": ["backtesting", "historical_data", "strategy_testing", "performance"]
+    },
+    {
+        "id": "options_basics",
+        "title": "Options Trading Basics",
+        "description": "Introduction to options, calls, puts, and basic strategies",
+        "category": "Derivatives",
+        "difficulty": "intermediate",
+        "tags": ["options", "calls", "puts", "derivatives", "strategies"]
+    },
+    {
+        "id": "fundamental_analysis",
+        "title": "Fundamental Analysis",
+        "description": "Learn to analyze company financials, earnings, and valuation metrics",
+        "category": "Fundamental Analysis",
+        "difficulty": "intermediate",
+        "tags": ["fundamentals", "earnings", "valuation", "financial_statements"]
+    },
+    {
+        "id": "market_cycles",
+        "title": "Market Cycles",
+        "description": "Understand bull/bear markets, economic cycles, and seasonal patterns",
+        "category": "Market Analysis",
+        "difficulty": "intermediate",
+        "tags": ["cycles", "bull_market", "bear_market", "seasonal", "economic"]
+    },
+    {
+        "id": "news_trading",
+        "title": "News Trading",
+        "description": "How to trade around earnings, economic data, and market-moving events",
+        "category": "Strategy",
+        "difficulty": "advanced",
+        "tags": ["news", "earnings", "economic_data", "events", "volatility"]
+    }
+]
 
-def extract_trade_setup_from_meta(meta_str: str) -> Optional[Dict[str, Any]]:
-    """Extract trade setup information from metadata"""
-    if not meta_str:
-        return None
-    
+@router.get("/context/current", response_model=CurrentContext)
+async def get_current_context(user_id: str = Query(...)):
+    """Get current context derived from last TradeSetupCard in history"""
     try:
-        meta = json.loads(meta_str)
-        if isinstance(meta, dict) and 'card' in meta:
-            return meta['card']
-    except (json.JSONDecodeError, KeyError):
-        pass
-    
-    return None
-
-def get_last_trade_setup_card(user_id: str) -> Optional[Dict[str, Any]]:
-    """Get the last TradeSetupCard from user's chat history"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # Load chat history for the user
+        chat_history = await _load_chat_history(user_id)
         
-        # Get the most recent message with metadata
-        cursor.execute("""
-            SELECT meta, created_at
-            FROM chat_history
-            WHERE user_id = ? AND meta IS NOT NULL
-            ORDER BY created_at DESC
-            LIMIT 1
-        """, (user_id,))
+        # Find the last TradeSetupCard
+        last_setup = None
+        active_symbols = []
         
-        result = cursor.fetchone()
-        conn.close()
+        if chat_history:
+            # Look for the most recent TradeSetupCard in the history
+            for entry in reversed(chat_history):
+                if entry.get("card") and entry["card"].get("symbol"):
+                    last_setup = TradeSetupCard(**entry["card"])
+                    active_symbols = [last_setup.symbol]
+                    break
         
-        if result:
-            meta_str, created_at = result
-            trade_setup = extract_trade_setup_from_meta(meta_str)
-            if trade_setup:
-                return trade_setup
-        
-        return None
-        
-    except Exception:
-        return None
-
-def get_recent_predictions(user_id: str, days: int = 7) -> List[RecentPrediction]:
-    """Get recent predictions from user's chat history"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        # Get recent messages with metadata containing trade setups
-        since_date = (datetime.now() - timedelta(days=days)).isoformat()
-        cursor.execute("""
-            SELECT meta, created_at
-            FROM chat_history
-            WHERE user_id = ? AND meta IS NOT NULL AND created_at >= ?
-            ORDER BY created_at DESC
-            LIMIT 20
-        """, (user_id, since_date))
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        predictions = []
-        for meta_str, created_at in rows:
-            trade_setup = extract_trade_setup_from_meta(meta_str)
-            if trade_setup and all(key in trade_setup for key in ['symbol', 'signal', 'confidence', 'price']):
-                predictions.append(RecentPrediction(
-                    symbol=trade_setup['symbol'],
-                    signal=trade_setup['signal'],
-                    confidence=trade_setup['confidence'],
-                    price=trade_setup['price'],
-                    created_at=created_at
-                ))
-        
-        return predictions
-        
-    except Exception:
-        return []
-
-def get_mock_context() -> CurrentContext:
-    """Generate mock context data for demonstration"""
-    return CurrentContext(
-        active_symbol="AAPL",
-        current_signal="BUY",
-        recent_predictions=[
-            RecentPrediction(
-                symbol="AAPL",
-                signal="BUY",
-                confidence=0.85,
-                price=150.25,
-                created_at=(datetime.now() - timedelta(hours=2)).isoformat()
-            ),
-            RecentPrediction(
-                symbol="MSFT",
-                signal="HOLD",
-                confidence=0.65,
-                price=420.50,
-                created_at=(datetime.now() - timedelta(days=1)).isoformat()
-            ),
-            RecentPrediction(
-                symbol="GOOGL",
-                signal="SELL",
-                confidence=0.75,
-                price=2800.00,
-                created_at=(datetime.now() - timedelta(days=2)).isoformat()
-            )
-        ]
-    )
-
-@router.get("/v1/context/current", response_model=CurrentContext)
-async def get_current_context(
-    user_id: str = Query(..., description="User ID to get context for")
-):
-    """Get current trading context for a user"""
-    try:
-        # Try to get real data from chat history
-        last_trade_setup = get_last_trade_setup_card(user_id)
-        recent_predictions = get_recent_predictions(user_id)
-        
-        if last_trade_setup and recent_predictions:
-            # Use real data from chat history
-            return CurrentContext(
-                active_symbol=last_trade_setup.get('symbol'),
-                current_signal=last_trade_setup.get('signal'),
-                recent_predictions=recent_predictions[:10]  # Limit to 10 most recent
-            )
+        # Create context summary
+        if last_setup:
+            context_summary = f"Last analyzed {last_setup.symbol} with {last_setup.signal} signal (confidence: {last_setup.confidence:.1%}). {last_setup.reasoning}"
         else:
-            # Fall back to mock data if no real data available
-            return get_mock_context()
+            context_summary = "No recent trade setups found. Start by asking for a setup with '/setup for SYMBOL'"
+        
+        return CurrentContext(
+            user_id=user_id,
+            last_setup=last_setup,
+            context_summary=context_summary,
+            active_symbols=active_symbols,
+            last_updated=datetime.now()
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving context: {str(e)}"
+        )
+
+@router.get("/knowledge/topics", response_model=List[KnowledgeTopic])
+async def get_knowledge_topics():
+    """Get static list of knowledge topics"""
+    return [KnowledgeTopic(**topic) for topic in KNOWLEDGE_TOPICS]
+
+@router.get("/knowledge/topics/{topic_id}", response_model=KnowledgeTopic)
+async def get_knowledge_topic(topic_id: str):
+    """Get a specific knowledge topic by ID"""
+    topic = next((t for t in KNOWLEDGE_TOPICS if t["id"] == topic_id), None)
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    return KnowledgeTopic(**topic)
+
+@router.get("/knowledge/topics/category/{category}")
+async def get_topics_by_category(category: str):
+    """Get topics filtered by category"""
+    filtered_topics = [t for t in KNOWLEDGE_TOPICS if t["category"].lower() == category.lower()]
+    return [KnowledgeTopic(**topic) for topic in filtered_topics]
+
+@router.get("/knowledge/topics/difficulty/{difficulty}")
+async def get_topics_by_difficulty(difficulty: str):
+    """Get topics filtered by difficulty level"""
+    filtered_topics = [t for t in KNOWLEDGE_TOPICS if t["difficulty"].lower() == difficulty.lower()]
+    return [KnowledgeTopic(**topic) for topic in filtered_topics]
+
+async def _load_chat_history(user_id: str) -> List[Dict[str, Any]]:
+    """Load chat history for a user"""
+    try:
+        # Create data directory if it doesn't exist
+        data_dir = Path("data/chat_history")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Load user's chat history
+        file_path = data_dir / f"{user_id}.json"
+        
+        if not file_path.exists():
+            return []
+        
+        with open(file_path, 'r') as f:
+            return json.load(f)
             
     except Exception as e:
-        # Return mock data on any error
-        return get_mock_context()
+        print(f"Warning: Failed to load chat history for {user_id}: {e}")
+        return []
 
-@router.get("/v1/context/symbols")
-async def get_active_symbols(
-    user_id: str = Query(..., description="User ID to get symbols for")
-):
-    """Get all symbols that user has interacted with"""
+async def _save_chat_history(user_id: str, chat_history: List[Dict[str, Any]]) -> None:
+    """Save chat history for a user"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        data_dir = Path("data/chat_history")
+        data_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get all unique symbols from user's trade setups
-        cursor.execute("""
-            SELECT DISTINCT json_extract(meta, '$.card.symbol') as symbol
-            FROM chat_history
-            WHERE user_id = ? AND meta IS NOT NULL
-            AND json_extract(meta, '$.card.symbol') IS NOT NULL
-            ORDER BY symbol
-        """, (user_id,))
+        file_path = data_dir / f"{user_id}.json"
         
-        symbols = [row[0] for row in cursor.fetchall() if row[0]]
-        conn.close()
-        
-        return {
-            "user_id": user_id,
-            "symbols": symbols,
-            "total_symbols": len(symbols)
-        }
-        
+        with open(file_path, 'w') as f:
+            json.dump(chat_history, f, indent=2, default=str)
+            
     except Exception as e:
-        return {
-            "user_id": user_id,
-            "symbols": ["AAPL", "MSFT", "GOOGL"],  # Mock data
-            "total_symbols": 3
-        }
-
-@router.get("/v1/context/signals")
-async def get_signal_history(
-    user_id: str = Query(..., description="User ID to get signals for"),
-    symbol: Optional[str] = Query(None, description="Filter by specific symbol"),
-    days: int = Query(30, description="Number of days to look back", ge=1, le=365)
-):
-    """Get signal history for a user"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        since_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        if symbol:
-            # Filter by specific symbol
-            cursor.execute("""
-                SELECT 
-                    json_extract(meta, '$.card.symbol') as symbol,
-                    json_extract(meta, '$.card.signal') as signal,
-                    json_extract(meta, '$.card.confidence') as confidence,
-                    json_extract(meta, '$.card.price') as price,
-                    created_at
-                FROM chat_history
-                WHERE user_id = ? 
-                AND meta IS NOT NULL
-                AND json_extract(meta, '$.card.symbol') = ?
-                AND created_at >= ?
-                ORDER BY created_at DESC
-            """, (user_id, symbol, since_date))
-        else:
-            # Get all signals
-            cursor.execute("""
-                SELECT 
-                    json_extract(meta, '$.card.symbol') as symbol,
-                    json_extract(meta, '$.card.signal') as signal,
-                    json_extract(meta, '$.card.confidence') as confidence,
-                    json_extract(meta, '$.card.price') as price,
-                    created_at
-                FROM chat_history
-                WHERE user_id = ? 
-                AND meta IS NOT NULL
-                AND json_extract(meta, '$.card.symbol') IS NOT NULL
-                AND created_at >= ?
-                ORDER BY created_at DESC
-            """, (user_id, since_date))
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        signals = []
-        for row in rows:
-            symbol_val, signal, confidence, price, created_at = row
-            if all([symbol_val, signal, confidence, price]):
-                signals.append({
-                    "symbol": symbol_val,
-                    "signal": signal,
-                    "confidence": confidence,
-                    "price": price,
-                    "created_at": created_at
-                })
-        
-        return {
-            "user_id": user_id,
-            "symbol_filter": symbol,
-            "days": days,
-            "signals": signals,
-            "total_signals": len(signals)
-        }
-        
-    except Exception as e:
-        return {
-            "user_id": user_id,
-            "symbol_filter": symbol,
-            "days": days,
-            "signals": [],
-            "total_signals": 0,
-            "error": str(e)
-        }
-
-@router.get("/v1/context/stats")
-async def get_context_stats(
-    user_id: str = Query(..., description="User ID to get stats for")
-):
-    """Get context statistics for a user"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        # Get total trade setups
-        cursor.execute("""
-            SELECT COUNT(*) 
-            FROM chat_history
-            WHERE user_id = ? AND meta IS NOT NULL
-            AND json_extract(meta, '$.card.symbol') IS NOT NULL
-        """, (user_id,))
-        total_setups = cursor.fetchone()[0]
-        
-        # Get unique symbols
-        cursor.execute("""
-            SELECT COUNT(DISTINCT json_extract(meta, '$.card.symbol'))
-            FROM chat_history
-            WHERE user_id = ? AND meta IS NOT NULL
-            AND json_extract(meta, '$.card.symbol') IS NOT NULL
-        """, (user_id,))
-        unique_symbols = cursor.fetchone()[0]
-        
-        # Get signal distribution
-        cursor.execute("""
-            SELECT 
-                json_extract(meta, '$.card.signal') as signal,
-                COUNT(*) as count
-            FROM chat_history
-            WHERE user_id = ? AND meta IS NOT NULL
-            AND json_extract(meta, '$.card.signal') IS NOT NULL
-            GROUP BY json_extract(meta, '$.card.signal')
-        """, (user_id,))
-        
-        signal_distribution = {row[0]: row[1] for row in cursor.fetchall()}
-        
-        # Get recent activity (last 7 days)
-        cursor.execute("""
-            SELECT COUNT(*)
-            FROM chat_history
-            WHERE user_id = ? AND created_at >= datetime('now', '-7 days')
-        """, (user_id,))
-        recent_activity = cursor.fetchone()[0]
-        
-        conn.close()
-        
-        return {
-            "user_id": user_id,
-            "total_trade_setups": total_setups,
-            "unique_symbols": unique_symbols,
-            "signal_distribution": signal_distribution,
-            "recent_activity_7_days": recent_activity,
-            "last_updated": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        return {
-            "user_id": user_id,
-            "error": str(e),
-            "last_updated": datetime.now().isoformat()
-        }
+        print(f"Warning: Failed to save chat history for {user_id}: {e}")

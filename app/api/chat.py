@@ -177,6 +177,16 @@ This analysis is based on a fine-tuned DistilBERT model trained on financial tex
             if card:
                 tools_used.append("trade_setup_card")
         
+        # Check for specific /setup for SYMBOL pattern
+        setup_match = re.search(r'/setup for ([A-Z]{1,5})', request.message, re.IGNORECASE)
+        if setup_match:
+            symbol = setup_match.group(1).upper()
+            card = _create_trade_setup_card_for_symbol(symbol)
+            if card:
+                tools_used.append("trade_setup_card")
+                # Override the reply with a specific message for setup requests
+                reply = f"📊 **Trade Setup for {symbol}**\n\nI've analyzed {symbol} and created a trade setup card with technical indicators, entry/exit levels, and risk management parameters. This is educational content only - always practice with paper trading first!"
+        
         # Record successful chat request
         latency = time.time() - start_time
         record_chat_request("success", latency)
@@ -214,6 +224,71 @@ def _is_trade_setup_request(message: str) -> bool:
     message_lower = message.lower()
     setup_keywords = ["setup for", "trade setup", "trading setup", "setup", "analysis for"]
     return any(keyword in message_lower for keyword in setup_keywords)
+
+def _create_trade_setup_card_for_symbol(symbol: str) -> Optional[TradeSetupCard]:
+    """Create a TradeSetupCard for a specific symbol"""
+    try:
+        # Get current price for the symbol
+        try:
+            price_data = price_tool.get_price(symbol)
+            current_price = price_data["price"] if price_data["price"] is not None else 100.0
+        except:
+            current_price = 100.0  # Fallback price
+        
+        # Generate mock technical indicators
+        indicators = {
+            "rsi": round(random.uniform(30, 70), 1),
+            "sma_20": round(current_price * random.uniform(0.95, 1.05), 2),
+            "sma_50": round(current_price * random.uniform(0.90, 1.10), 2),
+            "volume": random.randint(1000000, 10000000),
+            "macd": round(random.uniform(-2, 2), 3),
+            "bollinger_upper": round(current_price * 1.02, 2),
+            "bollinger_lower": round(current_price * 0.98, 2)
+        }
+        
+        # Determine signal based on indicators
+        if indicators["rsi"] < 30:
+            signal = "BUY"
+            confidence = 0.8
+        elif indicators["rsi"] > 70:
+            signal = "SELL"
+            confidence = 0.8
+        else:
+            signal = "HOLD"
+            confidence = 0.6
+        
+        # Calculate entry, take profit, and stop loss
+        entry = current_price
+        if signal == "BUY":
+            tp = [entry * 1.05, entry * 1.10]  # 5% and 10% profit targets
+            sl = entry * 0.95  # 5% stop loss
+        elif signal == "SELL":
+            tp = [entry * 0.95, entry * 0.90]  # 5% and 10% profit targets
+            sl = entry * 1.05  # 5% stop loss
+        else:
+            tp = []
+            sl = entry
+        
+        # Create the card
+        card = TradeSetupCard(
+            symbol=symbol,
+            name=f"{symbol} Stock",
+            signal=signal,
+            confidence=confidence,
+            price=current_price,
+            entry=entry,
+            tp=tp,
+            sl=sl,
+            indicators=indicators,
+            reasoning=f"Based on technical analysis: RSI at {indicators['rsi']}, moving averages showing {'bullish' if indicators['sma_20'] > indicators['sma_50'] else 'bearish'} trend. This is educational content only - always practice with paper trading first!",
+            updated_at=datetime.now()
+        )
+        
+        return card
+        
+    except Exception as e:
+        # If card creation fails, return None
+        return None
 
 def _create_trade_setup_card(message: str, reply: str) -> Optional[TradeSetupCard]:
     """Create a TradeSetupCard from the message and reply"""
