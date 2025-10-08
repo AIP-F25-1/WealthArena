@@ -1,435 +1,449 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
-import { Gamepad2, Trophy, Clock, TrendingUp, Users, Play, Star, Zap } from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { View, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { 
+  useTheme, 
+  Text, 
+  Card, 
+  Button, 
+  Icon, 
+  Badge,
+  FoxMascot,
+  FAB,
+  tokens 
+} from '@/src/design-system';
+import LeaderboardCard from '../../components/LeaderboardCard';
+import { getTopPerformers } from '../../data/leaderboardData';
 
 const { width } = Dimensions.get('window');
 
-const SCENARIOS = [
-  {
-    id: '1',
-    title: '2008 Financial Crisis',
-    description: 'Navigate the market crash and recovery',
-    difficulty: 'Hard',
-    duration: '6 months',
-    players: 1243,
-    color: Colors.chartRed,
-    glow: 'rgba(239, 68, 68, 0.3)',
-  },
-  {
-    id: '2',
-    title: 'Dot-com Bubble',
-    description: 'Survive the tech bubble burst of 2000',
-    difficulty: 'Medium',
-    duration: '1 year',
-    players: 892,
-    color: Colors.gold,
-    glow: Colors.glow.orange,
-  },
-  {
-    id: '3',
-    title: 'COVID-19 Crash',
-    description: 'Trade through the 2020 pandemic volatility',
-    difficulty: 'Medium',
-    duration: '3 months',
-    players: 2156,
-    color: Colors.accent,
-    glow: Colors.glow.purple,
-  },
-  {
-    id: '4',
-    title: 'Bull Market 2017',
-    description: 'Maximize gains in a strong bull run',
-    difficulty: 'Easy',
-    duration: '1 year',
-    players: 1567,
-    color: Colors.chartGreen,
-    glow: Colors.glow.green,
-  },
-];
+const getBadgeColor = (badge: string, theme: any) => {
+  switch (badge) {
+    case 'gold': return theme.yellow;
+    case 'silver': return '#C0C0C0';
+    case 'bronze': return '#CD7F32';
+    default: return theme.muted;
+  }
+};
 
-export default function GameModeScreen() {
+export default function GameScreen() {
+  const router = useRouter();
+  const { theme, mode } = useTheme();
+
+  const userLevel = 12;
+  const currentXP = 2450;
+  const nextLevelXP = 3000;
+  const xpProgress = (currentXP / nextLevelXP) * 100;
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <LinearGradient
-        colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]}
-        style={styles.gradientBackground}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <LinearGradient
-              colors={[Colors.gold, Colors.gold]}
-              style={styles.iconGradient}
-            >
-              <Gamepad2 size={32} color={Colors.primary} />
-            </LinearGradient>
-          </View>
-          <Text style={styles.headerTitle}>Game Mode</Text>
-          <Text style={styles.headerSubtitle}>
-            Test your skills in historical market scenarios
-          </Text>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <LinearGradient
-              colors={[Colors.glow.orange, 'transparent']}
-              style={styles.statGradient}
-            >
-              <View style={styles.statIconBg}>
-                <Trophy size={24} color={Colors.gold} />
+        {/* Hero Section with Gradient - Elevated Design */}
+        <Card style={styles.heroCard} elevation="high" noBorder>
+          <LinearGradient
+            colors={[theme.primary, theme.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.heroText}>
+                <Text variant="h1" weight="bold" color="#FFFFFF">
+                  Game Arena
+                </Text>
+                <Text variant="body" color="#FFFFFF" style={styles.heroSubtitle}>
+                  Level up your trading skills through play
+                </Text>
               </View>
-              <Text style={styles.statValue}>12</Text>
-              <Text style={styles.statLabel}>Wins</Text>
-            </LinearGradient>
-          </View>
-          <View style={styles.statCard}>
-            <LinearGradient
-              colors={[Colors.glow.green, 'transparent']}
-              style={styles.statGradient}
-            >
-              <View style={styles.statIconBg}>
-                <TrendingUp size={24} color={Colors.chartGreen} />
-              </View>
-              <Text style={styles.statValue}>+24%</Text>
-              <Text style={styles.statLabel}>Avg Return</Text>
-            </LinearGradient>
-          </View>
-          <View style={styles.statCard}>
-            <LinearGradient
-              colors={[Colors.glow.blue, 'transparent']}
-              style={styles.statGradient}
-            >
-              <View style={styles.statIconBg}>
-                <Star size={24} color={Colors.secondary} fill={Colors.secondary} />
-              </View>
-              <Text style={styles.statValue}>#156</Text>
-              <Text style={styles.statLabel}>Rank</Text>
-            </LinearGradient>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Historical Scenarios</Text>
-          {SCENARIOS.map((scenario) => (
-            <View key={scenario.id} style={styles.scenarioCard}>
-              <LinearGradient
-                colors={[scenario.glow, 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.scenarioGradient}
-              >
-                <View style={styles.scenarioHeader}>
-                  <Text style={styles.scenarioTitle}>{scenario.title}</Text>
-                  <View style={[
-                    styles.difficultyBadge,
-                    {
-                      backgroundColor:
-                        scenario.difficulty === 'Easy'
-                          ? Colors.glow.green
-                          : scenario.difficulty === 'Medium'
-                          ? Colors.glow.orange
-                          : 'rgba(239, 68, 68, 0.2)',
-                    },
-                  ]}>
-                    <Text style={[
-                      styles.difficultyText,
-                      {
-                        color:
-                          scenario.difficulty === 'Easy'
-                            ? Colors.chartGreen
-                            : scenario.difficulty === 'Medium'
-                            ? Colors.gold
-                            : Colors.chartRed,
-                      },
-                    ]}>
-                      {scenario.difficulty}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.scenarioDescription}>{scenario.description}</Text>
-                <View style={styles.scenarioMeta}>
-                  <View style={styles.metaItem}>
-                    <Clock size={16} color={Colors.textMuted} />
-                    <Text style={styles.metaText}>{scenario.duration}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Users size={16} color={Colors.textMuted} />
-                    <Text style={styles.metaText}>{scenario.players} players</Text>
-                  </View>
-                </View>
-                <TouchableOpacity style={[styles.playButton, { backgroundColor: scenario.color }]}>
-                  <Play size={20} color={Colors.text} fill={Colors.text} />
-                  <Text style={styles.playButtonText}>Start Scenario</Text>
-                </TouchableOpacity>
-              </LinearGradient>
+              <FoxMascot variant="winner" size={100} />
             </View>
-          ))}
-        </View>
+          </LinearGradient>
+        </Card>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Leaderboard</Text>
-          <View style={styles.leaderboardCard}>
-            {[1, 2, 3, 4, 5].map((rank) => (
-              <View key={rank} style={styles.leaderboardRow}>
-                <View style={[
-                  styles.rankBadge,
-                  rank <= 3 && styles.rankBadgeTop,
-                ]}>
-                  {rank <= 3 ? (
-                    <LinearGradient
-                      colors={[Colors.gold, Colors.gold]}
-                      style={styles.rankBadgeGradient}
-                    >
-                      <Text style={styles.rankTextTop}>#{rank}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <Text style={styles.rankText}>#{rank}</Text>
-                  )}
-                </View>
-                <View style={styles.playerInfo}>
-                  <Text style={styles.playerName}>Player {rank}</Text>
-                  <View style={styles.playerScoreRow}>
-                    <Zap size={14} color={Colors.gold} fill={Colors.gold} />
-                    <Text style={styles.playerScore}>+{(50 - rank * 5).toFixed(1)}% return</Text>
-                  </View>
-                </View>
-                {rank <= 3 && (
-                  <View style={styles.trophyBadge}>
-                    <Trophy size={16} color={Colors.gold} fill={Colors.gold} />
-                  </View>
-                )}
-              </View>
-            ))}
+        {/* Player Stats Card */}
+        <Card style={styles.statsCard} elevation="med">
+          <View style={styles.statsHeader}>
+            <View>
+              <Text variant="h2" weight="bold">Level {userLevel}</Text>
+              <Text variant="small" muted>Trading Champion</Text>
+            </View>
+            <View style={[styles.xpBadge, { backgroundColor: theme.yellow }]}>
+              <Icon name="trophy" size={20} color="#FFFFFF" />
+              <Text variant="small" weight="bold" color="#FFFFFF">{currentXP} XP</Text>
+            </View>
           </View>
-        </View>
+          
+          {/* XP Progress Bar */}
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBarBg, { backgroundColor: theme.border }]}>
+              <View 
+                style={[
+                  styles.progressBarFill, 
+                  { backgroundColor: theme.primary, width: `${xpProgress}%` }
+                ]} 
+              />
+            </View>
+            <Text variant="xs" muted>{currentXP} / {nextLevelXP} XP</Text>
+          </View>
+        </Card>
 
-        <View style={{ height: 40 }} />
-      </LinearGradient>
-    </ScrollView>
+        {/* VS AI Competition */}
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Icon name="execute" size={24} color={theme.accent} />
+              <Text variant="h3" weight="semibold">You VS AI Duel</Text>
+            </View>
+          </View>
+          <Text variant="small" muted>Compete against the AI Agent in a fast market scenario.</Text>
+          <Button 
+            variant="primary" 
+            size="large"
+            onPress={() => router.push('/vs-ai-start')}
+            fullWidth
+            icon={<Icon name="robot" size={18} color={theme.bg} />}
+          >
+            Play Against AI
+          </Button>
+        </Card>
+
+        {/* Main Game Mode - Historical Fast-Forward */}
+        <Card style={styles.gameModeCard} elevation="med">
+          <View style={styles.gameModeHeader}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.primary + '20' }]}>
+              <Ionicons name="play-forward" size={32} color={theme.primary} />
+            </View>
+            <View style={styles.gameModeText}>
+              <Text variant="h3" weight="semibold">Historical Fast-Forward</Text>
+              <Text variant="small" muted>Practice with real market data</Text>
+            </View>
+          </View>
+          <Text variant="small" style={styles.gameModeDescription}>
+            Travel back in time and trade through historical market events. Test your skills with real data in accelerated mode.
+          </Text>
+          <Button 
+            variant="primary" 
+            size="large"
+            onPress={() => router.push('/trade-simulator')}
+            fullWidth
+            icon={<MaterialCommunityIcons name="gamepad-variant-outline" size={20} color={mode === 'dark' ? '#000000' : '#FFFFFF'} />}
+          >
+            Play Episode
+          </Button>
+        </Card>
+
+        {/* Leaderboard Preview */}
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Icon name="leaderboard" size={24} color={theme.yellow} />
+              <Text variant="h3" weight="semibold">Top Performers</Text>
+            </View>
+            <Pressable onPress={() => router.push('/(tabs)/chat')}>
+              <Text variant="small" color={theme.primary} weight="semibold">View All</Text>
+            </Pressable>
+          </View>
+
+          {getTopPerformers(3).map((player) => (
+            <LeaderboardCard 
+              key={player.id} 
+              entry={player}
+              onPress={() => router.push('/(tabs)/chat')}
+            />
+          ))}
+        </Card>
+
+        {/* Recent Achievements */}
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Icon name="trophy" size={24} color={theme.yellow} />
+              <Text variant="h3" weight="semibold">Recent Achievements</Text>
+            </View>
+          </View>
+
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.achievementScroll}
+          >
+            {[
+              { 
+                id: 'perfect-trade',
+                title: 'Perfect Trade', 
+                xp: 50, 
+                description: 'Executed a trade with perfect timing',
+                icon: 'target',
+                color: '#00FF6A',
+                gradient: ['#00FF6A', '#00CC55']
+              },
+              { 
+                id: 'risk-master',
+                title: 'Risk Master', 
+                xp: 75, 
+                description: 'Managed risk like a pro',
+                icon: 'shield',
+                color: '#FF6B35',
+                gradient: ['#FF6B35', '#FF8C42']
+              },
+              { 
+                id: 'chart-expert',
+                title: 'Chart Expert', 
+                xp: 100, 
+                description: 'Mastered technical analysis',
+                icon: 'trending-up',
+                color: '#4A90E2',
+                gradient: ['#4A90E2', '#357ABD']
+              },
+              { 
+                id: 'streak-master',
+                title: 'Streak Master', 
+                xp: 150, 
+                description: 'Maintained a 10-day winning streak',
+                icon: 'lightning-bolt',
+                color: '#FFD700',
+                gradient: ['#FFD700', '#FFA500']
+              },
+              { 
+                id: 'portfolio-builder',
+                title: 'Portfolio Builder', 
+                xp: 200, 
+                description: 'Built a diversified portfolio',
+                icon: 'layers',
+                color: '#9B59B6',
+                gradient: ['#9B59B6', '#8E44AD']
+              },
+            ].map((achievement) => (
+              <Card key={`achievement-${achievement.id}`} style={styles.achievementCard} elevation="low">
+                <LinearGradient
+                  colors={achievement.gradient as [string, string]}
+                  style={styles.achievementBadge}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <MaterialCommunityIcons 
+                    name={achievement.icon as any} 
+                    size={32} 
+                    color="#FFFFFF" 
+                  />
+                </LinearGradient>
+                <Text variant="small" weight="semibold" center numberOfLines={1}>
+                  {achievement.title}
+                </Text>
+                <Text variant="xs" muted center numberOfLines={2}>
+                  {achievement.description}
+                </Text>
+                <Badge variant="warning" size="small">+{achievement.xp} XP</Badge>
+              </Card>
+            ))}
+          </ScrollView>
+        </Card>
+
+        {/* Challenge of the Week */}
+        <Card style={styles.card} elevation="med">
+          <View style={styles.challengeContent}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.accent + '20' }]}>
+              <Ionicons name="flame" size={28} color={theme.accent} />
+            </View>
+            <View style={styles.challengeText}>
+              <Text variant="h3" weight="semibold">Weekly Challenge</Text>
+              <Text variant="small" muted>Execute 10 profitable trades</Text>
+              <View style={styles.progressRow}>
+                <View style={[styles.miniProgressBar, { backgroundColor: theme.border }]}>
+                  <View 
+                    style={[
+                      styles.miniProgressFill, 
+                      { backgroundColor: theme.accent, width: '60%' }
+                    ]} 
+                  />
+                </View>
+                <Text variant="xs" muted>6/10</Text>
+              </View>
+            </View>
+          </View>
+          <Text variant="xs" muted style={styles.challengeReward}>
+            Reward: 500 XP + Rare Badge
+          </Text>
+        </Card>
+
+        {/* Bottom Spacing */}
+        <View style={{ height: 80 }} />
+      </ScrollView>
+      
+      <FAB onPress={() => router.push('/ai-chat')} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
-  gradientBackground: {
+  scrollView: {
     flex: 1,
   },
-  header: {
-    padding: 24,
-    paddingTop: 8,
-    alignItems: 'center',
+  content: {
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.md,
   },
-  headerIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    marginBottom: 16,
+  heroCard: {
+    padding: 0,
     overflow: 'hidden',
   },
-  iconGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  heroGradient: {
+    padding: tokens.spacing.lg,
+    borderRadius: tokens.radius.md,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 32,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  statGradient: {
-    padding: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  statIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 16,
-  },
-  scenarioCard: {
-    borderRadius: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  scenarioGradient: {
-    padding: 20,
-    gap: 12,
-  },
-  scenarioHeader: {
+  heroContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  scenarioTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  heroText: {
     flex: 1,
+    gap: tokens.spacing.xs,
   },
-  difficultyBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  heroSubtitle: {
+    opacity: 0.9,
   },
-  difficultyText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
+  statsCard: {
+    gap: tokens.spacing.md,
   },
-  scenarioDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
-  scenarioMeta: {
+  statsHeader: {
     flexDirection: 'row',
-    gap: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  metaItem: {
+  xpBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: tokens.spacing.xs,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.xs,
+    borderRadius: tokens.radius.pill,
   },
-  metaText: {
-    fontSize: 12,
-    color: Colors.textMuted,
+  progressBarContainer: {
+    gap: tokens.spacing.xs,
   },
-  playButton: {
+  progressBarBg: {
+    height: 12,
+    borderRadius: tokens.radius.sm,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: tokens.radius.sm,
+  },
+  gameModeCard: {
+    gap: tokens.spacing.md,
+  },
+  gameModeHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.spacing.md,
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginTop: 8,
   },
-  playButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  gameModeText: {
+    flex: 1,
+    gap: tokens.spacing.xs,
   },
-  leaderboardCard: {
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 20,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  gameModeDescription: {
+    lineHeight: 20,
+  },
+  card: {
+    gap: tokens.spacing.sm,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
   },
   leaderboardRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    paddingVertical: tokens.spacing.sm,
   },
-  rankBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankBadgeTop: {
-    backgroundColor: 'transparent',
-    overflow: 'hidden',
-  },
-  rankBadgeGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.text,
-  },
-  rankTextTop: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.primary,
-  },
-  playerInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  playerName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  playerScoreRow: {
+  leaderboardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: tokens.spacing.sm,
+    flex: 1,
   },
-  playerScore: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  trophyBadge: {
+  rankBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.glow.orange,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  achievementScroll: {
+    gap: tokens.spacing.sm,
+    paddingRight: tokens.spacing.md,
+  },
+  achievementCard: {
+    width: 140,
+    alignItems: 'center',
+    gap: tokens.spacing.xs,
+    paddingVertical: tokens.spacing.sm,
+  },
+  achievementBadge: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: tokens.spacing.xs,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  challengeContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: tokens.spacing.md,
+  },
+  challengeText: {
+    flex: 1,
+    gap: tokens.spacing.xs,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
+    marginTop: tokens.spacing.xs,
+  },
+  miniProgressBar: {
+    flex: 1,
+    height: 6,
+    borderRadius: tokens.radius.sm,
+    overflow: 'hidden',
+  },
+  miniProgressFill: {
+    height: '100%',
+    borderRadius: tokens.radius.sm,
+  },
+  challengeReward: {
+    marginTop: tokens.spacing.xs,
   },
 });

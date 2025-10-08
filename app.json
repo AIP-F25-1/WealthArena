@@ -8,6 +8,7 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "sdkVersion": "54.0.0",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -15,14 +16,28 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.wealtharena-investment-platform-kqbxtri"
+      "bundleIdentifier": "app.rork.wealtharena-investment-platform-kqbxtri",
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#000000"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.wealtharena-investment-platform-kqbxtri"
+      "package": "app.rork.wealtharena-investment-platform-kqbxtri",
+      "navigationBar": {
+        "visible": true,
+        "backgroundColor": "#000000",
+        "barStyle": "light-content"
+      },
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#000000"
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -32,6 +47,15 @@
         "expo-router",
         {
           "origin": "https://rork.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-system-ui",
+        {
+          "androidNavigationBarBackgroundColor": "#000000",
+          "androidNavigationBarStyle": "light-content"
         }
       ]
     ],

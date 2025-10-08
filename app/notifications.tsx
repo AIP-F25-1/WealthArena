@@ -1,507 +1,245 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-} from 'react-native';
-import { Stack } from 'expo-router';
-import {
-  Bell,
-  TrendingUp,
-  AlertTriangle,
-  Trophy,
-  Settings,
-  Clock,
-  CheckCircle,
-  XCircle,
-} from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme, Text, Card, Button, Icon, Badge, tokens } from '@/src/design-system';
 
 interface Notification {
   id: string;
-  type: 'market' | 'portfolio' | 'competition' | 'system';
+  type: 'market' | 'portfolio' | 'achievement' | 'system';
   title: string;
   message: string;
-  timestamp: Date;
+  timestamp: string;
   read: boolean;
-  priority: 'high' | 'medium' | 'low';
 }
 
 const NOTIFICATIONS: Notification[] = [
   {
     id: '1',
-    type: 'portfolio',
-    title: 'Rebalancing Suggested',
-    message: 'Your tech allocation is 5% over target. Consider rebalancing.',
-    timestamp: new Date('2025-01-15T10:30:00'),
+    type: 'achievement',
+    title: 'New Badge Unlocked!',
+    message: 'You earned the "First Trade" badge! +50 XP',
+    timestamp: '10 min ago',
     read: false,
-    priority: 'high',
   },
   {
     id: '2',
     type: 'market',
     title: 'Market Alert',
-    message: 'S&P 500 dropped 2% in the last hour. Review your positions.',
-    timestamp: new Date('2025-01-15T09:15:00'),
+    message: 'AAPL is up 3.2% today. Great time to review your position!',
+    timestamp: '1 hour ago',
     read: false,
-    priority: 'high',
   },
   {
     id: '3',
-    type: 'competition',
-    title: 'New Tournament Starting',
-    message: '2008 Financial Crisis scenario begins in 1 hour.',
-    timestamp: new Date('2025-01-15T08:00:00'),
-    read: true,
-    priority: 'medium',
+    type: 'portfolio',
+    title: 'Portfolio Update',
+    message: 'Your portfolio is up 2.5% this week. Great job!',
+    timestamp: '2 hours ago',
+    read: false,
   },
   {
     id: '4',
-    type: 'system',
-    title: 'Model Update',
-    message: 'AI model updated to v2.4.1 with improved accuracy.',
-    timestamp: new Date('2025-01-14T16:00:00'),
+    type: 'achievement',
+    title: '7-Day Streak!',
+    message: 'You completed a 7-day learning streak! Keep it up!',
+    timestamp: 'Yesterday',
     read: true,
-    priority: 'low',
   },
   {
     id: '5',
-    type: 'portfolio',
-    title: 'Dividend Received',
-    message: 'AAPL dividend of $24.50 credited to your account.',
-    timestamp: new Date('2025-01-14T12:00:00'),
+    type: 'system',
+    title: 'New Features Available',
+    message: 'Check out the new strategy lab and technical analysis tools!',
+    timestamp: '2 days ago',
     read: true,
-    priority: 'low',
-  },
-  {
-    id: '6',
-    type: 'competition',
-    title: 'Leaderboard Update',
-    message: 'You moved up to #142 in the global rankings!',
-    timestamp: new Date('2025-01-13T18:30:00'),
-    read: true,
-    priority: 'medium',
   },
 ];
 
 export default function NotificationsScreen() {
+  const router = useRouter();
+  const { theme } = useTheme();
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [settings, setSettings] = useState({
-    marketAlerts: true,
-    portfolioUpdates: true,
-    competitionNews: true,
-    systemAlerts: false,
-  });
 
-  const filteredNotifications = notifications.filter((n) =>
-    filter === 'all' ? true : !n.read
-  );
-
-  const markAsRead = (id: string) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  };
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getIconName = (type: string) => {
     switch (type) {
-      case 'market':
-        return <TrendingUp size={20} color={Colors.secondary} />;
-      case 'portfolio':
-        return <AlertTriangle size={20} color={Colors.warning} />;
-      case 'competition':
-        return <Trophy size={20} color={Colors.gold} />;
-      case 'system':
-        return <Settings size={20} color={Colors.textMuted} />;
-      default:
-        return <Bell size={20} color={Colors.textMuted} />;
+      case 'market': return 'market';
+      case 'portfolio': return 'portfolio';
+      case 'achievement': return 'trophy';
+      case 'system': return 'settings';
+      default: return 'settings';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return Colors.danger;
-      case 'medium':
-        return Colors.warning;
-      case 'low':
-        return Colors.textMuted;
-      default:
-        return Colors.textMuted;
+  const getIconColor = (type: string) => {
+    switch (type) {
+      case 'market': return theme.primary;
+      case 'portfolio': return theme.accent;
+      case 'achievement': return theme.yellow;
+      case 'system': return theme.muted;
+      default: return theme.text;
     }
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Stack.Screen
         options={{
           title: 'Notifications',
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: theme.bg },
+          headerTintColor: theme.text,
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.filterButtons}>
-            <TouchableOpacity
-              style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-              onPress={() => setFilter('all')}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  filter === 'all' && styles.filterButtonTextActive,
-                ]}
+      
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Card */}
+        <Card style={styles.headerCard} elevation="med">
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <Icon name="bell" size={32} color={theme.primary} />
+              <View>
+                <Text variant="h3" weight="bold">Notifications</Text>
+                <Text variant="small" muted>
+                  {unreadCount} unread {unreadCount === 1 ? 'notification' : 'notifications'}
+                </Text>
+              </View>
+            </View>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="small"
+                onPress={markAllAsRead}
               >
-                All
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterButton, filter === 'unread' && styles.filterButtonActive]}
-              onPress={() => setFilter('unread')}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  filter === 'unread' && styles.filterButtonTextActive,
-                ]}
-              >
-                Unread ({notifications.filter((n) => !n.read).length})
-              </Text>
-            </TouchableOpacity>
+                Mark all read
+              </Button>
+            )}
           </View>
-          {notifications.some((n) => !n.read) && (
-            <TouchableOpacity style={styles.markAllButton} onPress={markAllAsRead}>
-              <CheckCircle size={16} color={Colors.secondary} />
-              <Text style={styles.markAllText}>Mark all read</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        </Card>
 
-        <View style={styles.section}>
-          {filteredNotifications.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Bell size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyTitle}>No notifications</Text>
-              <Text style={styles.emptySubtitle}>
-                {filter === 'unread'
-                  ? "You're all caught up!"
-                  : 'Notifications will appear here'}
-              </Text>
-            </View>
-          ) : (
-            filteredNotifications.map((notification) => (
-              <TouchableOpacity
-                key={notification.id}
-                style={[
-                  styles.notificationCard,
-                  !notification.read && styles.notificationCardUnread,
-                ]}
-                onPress={() => markAsRead(notification.id)}
-              >
-                <View style={styles.notificationLeft}>
-                  <View
-                    style={[
-                      styles.notificationIcon,
-                      {
-                        backgroundColor:
-                          notification.type === 'market'
-                            ? Colors.secondary + '20'
-                            : notification.type === 'portfolio'
-                            ? Colors.warning + '20'
-                            : notification.type === 'competition'
-                            ? Colors.gold + '20'
-                            : Colors.surfaceLight,
-                      },
-                    ]}
-                  >
-                    {getNotificationIcon(notification.type)}
-                  </View>
-                  <View style={styles.notificationContent}>
-                    <View style={styles.notificationHeader}>
-                      <Text style={styles.notificationTitle}>{notification.title}</Text>
-                      {!notification.read && <View style={styles.unreadDot} />}
-                    </View>
-                    <Text style={styles.notificationMessage}>{notification.message}</Text>
-                    <View style={styles.notificationFooter}>
-                      <Clock size={12} color={Colors.textMuted} />
-                      <Text style={styles.notificationTime}>
-                        {notification.timestamp.toLocaleString()}
-                      </Text>
-                      <View
-                        style={[
-                          styles.priorityDot,
-                          { backgroundColor: getPriorityColor(notification.priority) },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notification Settings</Text>
-          <View style={styles.settingsCard}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <TrendingUp size={20} color={Colors.secondary} />
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Market Events</Text>
-                  <Text style={styles.settingSubtitle}>Price alerts and market news</Text>
-                </View>
+        {/* Notifications List */}
+        {notifications.map((notification) => (
+          <Card 
+            key={notification.id}
+            style={[
+              styles.notificationCard,
+              !notification.read && { ...styles.unreadCard, borderLeftWidth: 3, borderLeftColor: theme.primary }
+            ]}
+          >
+            <View style={styles.notificationContent}>
+              <View style={[styles.iconCircle, { backgroundColor: getIconColor(notification.type) + '20' }]}>
+                <Icon name={getIconName(notification.type) as any} size={24} color={getIconColor(notification.type)} />
               </View>
-              <Switch
-                value={settings.marketAlerts}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, marketAlerts: value })
-                }
-                trackColor={{ false: Colors.surfaceLight, true: Colors.secondary + '60' }}
-                thumbColor={settings.marketAlerts ? Colors.secondary : Colors.textMuted}
-              />
-            </View>
-
-            <View style={styles.settingDivider} />
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <AlertTriangle size={20} color={Colors.warning} />
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Portfolio Updates</Text>
-                  <Text style={styles.settingSubtitle}>Rebalancing and performance</Text>
+              
+              <View style={styles.notificationText}>
+                <View style={styles.notificationHeader}>
+                  <Text variant="body" weight="semibold">{notification.title}</Text>
+                  {!notification.read && (
+                    <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
+                  )}
                 </View>
+                <Text variant="small" muted style={styles.notificationMessage}>
+                  {notification.message}
+                </Text>
+                <Text variant="xs" muted style={styles.timestamp}>
+                  {notification.timestamp}
+                </Text>
               </View>
-              <Switch
-                value={settings.portfolioUpdates}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, portfolioUpdates: value })
-                }
-                trackColor={{ false: Colors.surfaceLight, true: Colors.secondary + '60' }}
-                thumbColor={settings.portfolioUpdates ? Colors.secondary : Colors.textMuted}
-              />
             </View>
+          </Card>
+        ))}
 
-            <View style={styles.settingDivider} />
+        {/* Empty State */}
+        {notifications.length === 0 && (
+          <Card style={styles.emptyCard}>
+            <Ionicons name="checkmark-circle-outline" size={48} color={theme.muted} />
+            <Text variant="h3" weight="semibold" center>No Notifications</Text>
+            <Text variant="small" muted center>
+              You're all caught up! We'll notify you when something important happens.
+            </Text>
+          </Card>
+        )}
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <Trophy size={20} color={Colors.gold} />
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Competition Updates</Text>
-                  <Text style={styles.settingSubtitle}>Tournaments and rankings</Text>
-                </View>
-              </View>
-              <Switch
-                value={settings.competitionNews}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, competitionNews: value })
-                }
-                trackColor={{ false: Colors.surfaceLight, true: Colors.secondary + '60' }}
-                thumbColor={settings.competitionNews ? Colors.secondary : Colors.textMuted}
-              />
-            </View>
-
-            <View style={styles.settingDivider} />
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <Settings size={20} color={Colors.textMuted} />
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>System Alerts</Text>
-                  <Text style={styles.settingSubtitle}>Model updates and maintenance</Text>
-                </View>
-              </View>
-              <Switch
-                value={settings.systemAlerts}
-                onValueChange={(value) =>
-                  setSettings({ ...settings, systemAlerts: value })
-                }
-                trackColor={{ false: Colors.surfaceLight, true: Colors.secondary + '60' }}
-                thumbColor={settings.systemAlerts ? Colors.secondary : Colors.textMuted}
-              />
-            </View>
-          </View>
-        </View>
+        {/* Bottom Spacing */}
+        <View style={{ height: tokens.spacing.xl }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
-  header: {
-    padding: 24,
-    gap: 16,
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  filterButton: {
+  scrollView: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+  },
+  content: {
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.sm,
+  },
+  headerCard: {
+    marginBottom: tokens.spacing.sm,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
-  filterButtonActive: {
-    borderColor: Colors.secondary,
-    backgroundColor: Colors.secondary + '20',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  filterButtonTextActive: {
-    color: Colors.secondary,
-  },
-  markAllButton: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-  },
-  markAllText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.secondary,
-  },
-  section: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    gap: tokens.spacing.md,
+    flex: 1,
   },
   notificationCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderLeftWidth: 0,
   },
-  notificationCardUnread: {
-    borderWidth: 2,
-    borderColor: Colors.secondary + '40',
-  },
-  notificationLeft: {
+  unreadCard: {},
+  notificationContent: {
     flexDirection: 'row',
-    gap: 12,
+    gap: tokens.spacing.sm,
   },
-  notificationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notificationContent: {
+  notificationText: {
     flex: 1,
-    gap: 6,
+    gap: 4,
   },
   notificationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
+    gap: tokens.spacing.xs,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.secondary,
   },
   notificationMessage: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
-  notificationFooter: {
-    flexDirection: 'row',
+  timestamp: {
+    marginTop: 2,
+  },
+  emptyCard: {
     alignItems: 'center',
-    gap: 6,
-  },
-  notificationTime: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  priorityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 6,
-  },
-  settingsCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  settingContent: {
-    flex: 1,
-    gap: 4,
-  },
-  settingTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  settingSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  settingDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: 16,
+    gap: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.xl,
   },
 });

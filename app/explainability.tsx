@@ -1,533 +1,279 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { Stack } from 'expo-router';
-import {
-  FileText,
-  TrendingUp,
-  AlertCircle,
-  Download,
-  Eye,
-  Brain,
-  Activity,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme, Text, Card, Button, Icon, Badge, tokens } from '@/src/design-system';
 
-interface TradeRationale {
+interface RationaleItem {
   id: string;
-  symbol: string;
-  action: 'buy' | 'sell';
-  timestamp: Date;
-  reasoning: string;
-  confidence: number;
-  signals: string[];
-  news: string[];
+  title: string;
+  description: string;
+  details: string[];
+  expanded: boolean;
 }
 
-const TRADE_RATIONALES: TradeRationale[] = [
-  {
-    id: '1',
-    symbol: 'AAPL',
-    action: 'buy',
-    timestamp: new Date('2025-01-15T10:30:00'),
-    reasoning: 'Strong momentum indicators combined with positive earnings outlook. RSI shows oversold conditions with bullish divergence.',
-    confidence: 87,
-    signals: ['RSI Oversold', 'MACD Bullish Cross', 'Volume Surge'],
-    news: ['Q4 Earnings Beat Expectations', 'New Product Launch Announced'],
-  },
-  {
-    id: '2',
-    symbol: 'TSLA',
-    action: 'sell',
-    timestamp: new Date('2025-01-14T14:20:00'),
-    reasoning: 'Overbought conditions detected. Price reached resistance level with declining volume, suggesting potential reversal.',
-    confidence: 72,
-    signals: ['RSI Overbought', 'Resistance Level', 'Declining Volume'],
-    news: ['Production Concerns Raised', 'Analyst Downgrade'],
-  },
-];
-
-const FEATURE_ATTRIBUTION = [
-  { feature: 'Price Momentum', importance: 0.28, value: '+2.3σ' },
-  { feature: 'Volume Profile', importance: 0.22, value: 'High' },
-  { feature: 'Market Sentiment', importance: 0.18, value: 'Bullish' },
-  { feature: 'Technical Indicators', importance: 0.15, value: 'Strong' },
-  { feature: 'News Sentiment', importance: 0.12, value: 'Positive' },
-  { feature: 'Sector Performance', importance: 0.05, value: 'Neutral' },
-];
-
 export default function ExplainabilityScreen() {
-  const [expandedTrade, setExpandedTrade] = useState<string | null>(null);
+  const router = useRouter();
+  const { theme } = useTheme();
 
-  const toggleTrade = (id: string) => {
-    setExpandedTrade(expandedTrade === id ? null : id);
+  const [rationales, setRationales] = useState<RationaleItem[]>([
+    {
+      id: '1',
+      title: 'Buy AAPL - Strong Earnings Report',
+      description: "AI identified a significant positive sentiment shift following Apple's Q3 earnings beat.",
+      details: [
+        'EPS: $1.52 (vs. $1.43 estimate)',
+        'Revenue: $89.5B (vs. $88.7B estimate)',
+        'Guidance: Raised Q4 outlook',
+        'Sentiment Score: +0.85 (from 0.20)',
+      ],
+      expanded: false,
+    },
+    {
+      id: '2',
+      title: 'Technical Indicators Alignment',
+      description: 'Multiple technical indicators show bullish signals.',
+      details: [
+        'RSI: 62 (Bullish momentum)',
+        'MACD: Positive crossover',
+        'Moving Averages: Golden cross pattern',
+        'Volume: +45% above average',
+      ],
+      expanded: false,
+    },
+  ]);
+
+  const toggleExpand = (id: string) => {
+    setRationales(rationales.map(r => 
+      r.id === id ? { ...r, expanded: !r.expanded } : r
+    ));
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Stack.Screen
         options={{
-          title: 'Explainability & Audit',
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text,
+          title: 'AI Explainability',
+          headerStyle: { backgroundColor: theme.bg },
+          headerTintColor: theme.text,
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <Brain size={32} color={Colors.accent} />
-          </View>
-          <Text style={styles.headerTitle}>AI Decision Transparency</Text>
-          <Text style={styles.headerSubtitle}>
-            Understand every trade decision with detailed explanations
+      
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Card style={styles.headerCard} elevation="med">
+          <Icon name="lab" size={36} color={theme.accent} />
+          <Text variant="h2" weight="bold" center>AI Explainability</Text>
+          <Text variant="small" muted center>
+            Understand how our AI makes trading decisions
           </Text>
-        </View>
+        </Card>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Trade Rationales</Text>
-          {TRADE_RATIONALES.map((trade) => {
-            const isExpanded = expandedTrade === trade.id;
-            return (
-              <View key={trade.id} style={styles.rationaleCard}>
-                <TouchableOpacity
-                  style={styles.rationaleHeader}
-                  onPress={() => toggleTrade(trade.id)}
-                >
-                  <View style={styles.rationaleLeft}>
-                    <View
-                      style={[
-                        styles.actionBadge,
-                        {
-                          backgroundColor:
-                            trade.action === 'buy'
-                              ? Colors.chartGreen + '20'
-                              : Colors.chartRed + '20',
-                        },
-                      ]}
-                    >
-                      <TrendingUp
-                        size={16}
-                        color={trade.action === 'buy' ? Colors.chartGreen : Colors.chartRed}
-                      />
-                    </View>
-                    <View>
-                      <Text style={styles.rationaleSymbol}>{trade.symbol}</Text>
-                      <Text style={styles.rationaleTime}>
-                        {trade.timestamp.toLocaleDateString()} {trade.timestamp.toLocaleTimeString()}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.rationaleRight}>
-                    <View style={styles.confidenceBadge}>
-                      <Text style={styles.confidenceText}>{trade.confidence}%</Text>
-                    </View>
-                    {isExpanded ? (
-                      <ChevronUp size={20} color={Colors.textMuted} />
-                    ) : (
-                      <ChevronDown size={20} color={Colors.textMuted} />
-                    )}
-                  </View>
-                </TouchableOpacity>
+        {/* Signal Summary */}
+        <Card style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <Badge variant="success" size="medium">BUY Signal</Badge>
+            <Text variant="small" muted>Confidence: 87%</Text>
+          </View>
+          <Text variant="body" weight="semibold">AAPL - Apple Inc.</Text>
+          <Text variant="small" muted style={styles.summaryText}>
+            Based on technical analysis, news sentiment, and market conditions
+          </Text>
+        </Card>
 
-                {isExpanded && (
-                  <View style={styles.rationaleContent}>
-                    <View style={styles.reasoningSection}>
-                      <Text style={styles.reasoningLabel}>Reasoning</Text>
-                      <Text style={styles.reasoningText}>{trade.reasoning}</Text>
-                    </View>
-
-                    <View style={styles.signalsSection}>
-                      <Text style={styles.signalsLabel}>Key Signals</Text>
-                      <View style={styles.signalsGrid}>
-                        {trade.signals.map((signal, index) => (
-                          <View key={index} style={styles.signalChip}>
-                            <Activity size={12} color={Colors.secondary} />
-                            <Text style={styles.signalText}>{signal}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-
-                    <View style={styles.newsSection}>
-                      <Text style={styles.newsLabel}>Supporting News</Text>
-                      {trade.news.map((item, index) => (
-                        <View key={index} style={styles.newsItem}>
-                          <FileText size={14} color={Colors.textMuted} />
-                          <Text style={styles.newsText}>{item}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Feature Attribution</Text>
-          <View style={styles.attributionCard}>
-            <Text style={styles.attributionSubtitle}>
-              Model decision factors ranked by importance
-            </Text>
-            {FEATURE_ATTRIBUTION.map((item, index) => (
-              <View key={index} style={styles.attributionRow}>
-                <View style={styles.attributionLeft}>
-                  <Text style={styles.attributionFeature}>{item.feature}</Text>
-                  <View style={styles.attributionBar}>
-                    <View
-                      style={[
-                        styles.attributionFill,
-                        { width: `${item.importance * 100}%` },
-                      ]}
-                    />
-                  </View>
+        {/* Influence Heatmap */}
+        <Card style={styles.heatmapCard}>
+          <Text variant="h3" weight="semibold" style={styles.sectionTitle}>
+            Decision Influence Map
+          </Text>
+          <Text variant="small" muted style={styles.heatmapDescription}>
+            Visual representation of factors influencing the trading decision
+          </Text>
+          
+          <View style={styles.heatmapContainer}>
+            {[
+              { factor: 'Earnings Beat', influence: 85, color: theme.success },
+              { factor: 'Technical Signals', influence: 72, color: theme.primary },
+              { factor: 'Market Sentiment', influence: 68, color: theme.warning },
+              { factor: 'Volume Spike', influence: 55, color: theme.accent },
+              { factor: 'News Sentiment', influence: 48, color: theme.muted },
+              { factor: 'Sector Performance', influence: 35, color: theme.danger },
+            ].map((item, index) => (
+              <View key={index} style={styles.heatmapRow}>
+                <Text variant="small" weight="semibold" style={styles.factorName}>
+                  {item.factor}
+                </Text>
+                <View style={styles.influenceBar}>
+                  <View 
+                    style={[
+                      styles.influenceFill, 
+                      { 
+                        width: `${item.influence}%`,
+                        backgroundColor: item.color 
+                      }
+                    ]} 
+                  />
                 </View>
-                <View style={styles.attributionRight}>
-                  <Text style={styles.attributionValue}>{item.value}</Text>
-                  <Text style={styles.attributionImportance}>
-                    {(item.importance * 100).toFixed(0)}%
-                  </Text>
-                </View>
+                <Text variant="small" weight="bold" style={styles.influenceValue}>
+                  {item.influence}%
+                </Text>
               </View>
             ))}
           </View>
-        </View>
+        </Card>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Decision Trace</Text>
-          <View style={styles.traceCard}>
-            <View style={styles.traceRow}>
-              <Eye size={20} color={Colors.secondary} />
-              <View style={styles.traceContent}>
-                <Text style={styles.traceLabel}>Model Version</Text>
-                <Text style={styles.traceValue}>v2.4.1 (Production)</Text>
-              </View>
-            </View>
-            <View style={styles.traceDivider} />
-            <View style={styles.traceRow}>
-              <Brain size={20} color={Colors.accent} />
-              <View style={styles.traceContent}>
-                <Text style={styles.traceLabel}>Training Dataset</Text>
-                <Text style={styles.traceValue}>Market Data 2020-2024</Text>
-              </View>
-            </View>
-            <View style={styles.traceDivider} />
-            <View style={styles.traceRow}>
-              <Activity size={20} color={Colors.gold} />
-              <View style={styles.traceContent}>
-                <Text style={styles.traceLabel}>Last Updated</Text>
-                <Text style={styles.traceValue}>2025-01-10 08:00 UTC</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        {/* Rationale Cards */}
+        <Text variant="h3" weight="semibold" style={styles.sectionTitle}>
+          Decision Factors
+        </Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Export Audit Bundle</Text>
-          <View style={styles.exportCard}>
-            <AlertCircle size={24} color={Colors.warning} />
-            <View style={styles.exportContent}>
-              <Text style={styles.exportTitle}>Compliance Ready</Text>
-              <Text style={styles.exportSubtitle}>
-                Export complete audit trail with all decision rationales
+        {rationales.map((rationale) => (
+          <Pressable 
+            key={rationale.id}
+            onPress={() => toggleExpand(rationale.id)}
+          >
+            <Card style={styles.rationaleCard}>
+              <View style={styles.rationaleHeader}>
+                <View style={styles.rationaleLeft}>
+                  <Icon name="lab" size={24} color={theme.primary} />
+                  <Text variant="body" weight="semibold" style={styles.rationaleTitle}>
+                    {rationale.title}
+                  </Text>
+                </View>
+                <Icon 
+                  name={rationale.expanded ? 'alert' : 'alert'} 
+                  size={20} 
+                  color={theme.muted} 
+                />
+              </View>
+
+              <Text variant="small" muted>
+                {rationale.description}
               </Text>
-            </View>
-          </View>
-          <View style={styles.exportButtons}>
-            <TouchableOpacity style={styles.exportButton}>
-              <Download size={20} color={Colors.text} />
-              <Text style={styles.exportButtonText}>Export CSV</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.exportButton}>
-              <Download size={20} color={Colors.text} />
-              <Text style={styles.exportButtonText}>Export PDF</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
+              {rationale.expanded && (
+                <View style={styles.detailsList}>
+                  {rationale.details.map((detail, index) => (
+                    <View key={index} style={styles.detailItem}>
+                      <Icon name="check-shield" size={16} color={theme.primary} />
+                      <Text variant="small" style={styles.detailText}>{detail}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </Card>
+          </Pressable>
+        ))}
+
+        {/* Action Button */}
+        <Button
+          variant="primary"
+          size="large"
+          fullWidth
+          icon={<Icon name="execute" size={20} color={theme.bg} />}
+          onPress={() => router.push('/trade-setup')}
+        >
+          Execute Trade
+        </Button>
+
+        <View style={{ height: tokens.spacing.xl }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  content: {
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.md,
   },
-  header: {
-    padding: 24,
+  headerCard: {
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
+  },
+  summaryCard: {
+    gap: tokens.spacing.sm,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  section: {
-    padding: 24,
-    paddingTop: 0,
+  summaryText: {
+    lineHeight: 18,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 16,
+    marginTop: tokens.spacing.xs,
   },
   rationaleCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    marginBottom: 12,
-    overflow: 'hidden',
+    gap: tokens.spacing.sm,
   },
   rationaleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
   },
   rationaleLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: tokens.spacing.sm,
     flex: 1,
   },
-  actionBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  rationaleTitle: {
+    flex: 1,
   },
-  rationaleSymbol: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: Colors.text,
+  detailsList: {
+    gap: tokens.spacing.xs,
+    marginTop: tokens.spacing.xs,
+    paddingTop: tokens.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#00000005',
   },
-  rationaleTime: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  rationaleRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  confidenceBadge: {
-    backgroundColor: Colors.accent + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  confidenceText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.accent,
-  },
-  rationaleContent: {
-    padding: 16,
-    paddingTop: 0,
-    gap: 16,
-  },
-  reasoningSection: {
-    gap: 8,
-  },
-  reasoningLabel: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  reasoningText: {
-    fontSize: 14,
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  signalsSection: {
-    gap: 8,
-  },
-  signalsLabel: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  signalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  signalChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.surfaceLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  signalText: {
-    fontSize: 12,
-    color: Colors.text,
-  },
-  newsSection: {
-    gap: 8,
-  },
-  newsLabel: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  newsItem: {
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: tokens.spacing.sm,
   },
-  newsText: {
+  detailText: {
     flex: 1,
-    fontSize: 13,
-    color: Colors.text,
     lineHeight: 18,
   },
-  attributionCard: {
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
+  heatmapCard: {
+    gap: tokens.spacing.sm,
   },
-  attributionSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginBottom: 8,
+  heatmapDescription: {
+    marginBottom: tokens.spacing.sm,
   },
-  attributionRow: {
+  heatmapContainer: {
+    gap: tokens.spacing.sm,
+  },
+  heatmapRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
   },
-  attributionLeft: {
+  factorName: {
+    minWidth: 120,
+  },
+  influenceBar: {
     flex: 1,
-    gap: 8,
-  },
-  attributionFeature: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  attributionBar: {
-    height: 6,
-    backgroundColor: Colors.surfaceLight,
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
     overflow: 'hidden',
   },
-  attributionFill: {
+  influenceFill: {
     height: '100%',
-    backgroundColor: Colors.secondary,
-    borderRadius: 3,
+    borderRadius: 4,
   },
-  attributionRight: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  attributionValue: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  attributionImportance: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  traceCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  traceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    padding: 16,
-  },
-  traceContent: {
-    flex: 1,
-    gap: 4,
-  },
-  traceLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-  },
-  traceValue: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  traceDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: 16,
-  },
-  exportCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  exportContent: {
-    flex: 1,
-    gap: 4,
-  },
-  exportTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  exportSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  exportButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  exportButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.secondary,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  exportButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  influenceValue: {
+    minWidth: 40,
+    textAlign: 'right',
   },
 });

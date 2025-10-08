@@ -1,24 +1,39 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { Stack } from 'expo-router';
-import { Briefcase, ChevronRight, Check } from 'lucide-react-native';
-import Colors from '@/constants/colors';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, Text, Card, Button, Icon, Badge, tokens, FAB } from '@/src/design-system';
 
-const STEPS = ['Constraints', 'Suggestions', 'Stress Test', 'Review'];
 
+const STEPS = ['Constraints', 'Suggestions', 'Allocation', 'Review'];
 const RISK_LEVELS = ['Conservative', 'Moderate', 'Aggressive'];
 const SECTORS = ['Technology', 'Healthcare', 'Finance', 'Energy', 'Consumer', 'Industrial'];
 
+const ASSETS = [
+  { id: 'AAPL', name: 'Apple Inc.', symbol: 'AAPL', type: 'Stock' },
+  { id: 'TSLA', name: 'Tesla Inc.', symbol: 'TSLA', type: 'Stock' },
+  { id: 'SPY', name: 'SPDR S&P 500', symbol: 'SPY', type: 'ETF' },
+  { id: 'BTC', name: 'Bitcoin', symbol: 'BTC', type: 'Crypto' },
+  { id: 'BND', name: 'Vanguard Total Bond', symbol: 'BND', type: 'Bond' },
+  { id: 'GLD', name: 'Gold Trust', symbol: 'GLD', type: 'Commodity' },
+];
+
 export default function PortfolioBuilderScreen() {
+  const router = useRouter();
+  const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedRisk, setSelectedRisk] = useState<string>('Moderate');
   const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<string>('');
+  const [allocations] = useState<Record<string, number>>({
+    AAPL: 25,
+    TSLA: 15,
+    SPY: 30,
+    BTC: 10,
+    BND: 15,
+    GLD: 5,
+  });
 
   const toggleSector = (sector: string) => {
     setSelectedSectors((prev) =>
@@ -26,538 +41,576 @@ export default function PortfolioBuilderScreen() {
     );
   };
 
+  // Progress calculation for future use
+  // const progress = ((currentStep + 1) / STEPS.length) * 100;
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Stack.Screen
         options={{
           title: 'Portfolio Builder',
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: theme.bg },
+          headerTintColor: theme.text,
         }}
       />
+      
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Card style={styles.headerCard} elevation="med" noBorder>
+          <LinearGradient
+            colors={[theme.primary, theme.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerContent}>
+              <Icon name="portfolio" size={48} color={theme.bg} />
+              <Text variant="h1" weight="bold" style={[styles.headerTitle, { color: theme.bg }]}>
+                Portfolio Builder
+              </Text>
+              <Text variant="body" style={[styles.headerSubtitle, { color: theme.bg + 'CC' }]}>
+                Create a personalized investment portfolio tailored to your goals and risk tolerance
+              </Text>
+            </View>
+          </LinearGradient>
+        </Card>
 
-      <View style={styles.stepsContainer}>
-        {STEPS.map((step, index) => (
-          <View key={step} style={styles.stepItem}>
-            <View
-              style={[
-                styles.stepCircle,
-                index <= currentStep && styles.stepCircleActive,
-                index < currentStep && styles.stepCircleCompleted,
-              ]}
-            >
-              {index < currentStep ? (
-                <Check size={16} color={Colors.text} />
-              ) : (
-                <Text
+        {/* Progress Steps */}
+        <Card style={styles.stepsCard}>
+          <View style={styles.stepsRow}>
+            {STEPS.map((step, index) => (
+              <View key={step} style={styles.stepItem}>
+                <View
                   style={[
-                    styles.stepNumber,
-                    index <= currentStep && styles.stepNumberActive,
+                    styles.stepCircle,
+                    { 
+                      backgroundColor: index <= currentStep ? theme.primary : theme.border,
+                    }
                   ]}
                 >
-                  {index + 1}
-                </Text>
-              )}
-            </View>
-            <Text
-              style={[
-                styles.stepLabel,
-                index <= currentStep && styles.stepLabelActive,
-              ]}
-            >
-              {step}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {currentStep === 0 && (
-          <View style={styles.stepContent}>
-            <View style={styles.headerSection}>
-              <Briefcase size={32} color={Colors.secondary} />
-              <Text style={styles.stepTitle}>Define Your Constraints</Text>
-              <Text style={styles.stepDescription}>
-                Set your risk tolerance and sector preferences
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Risk Tolerance</Text>
-              <View style={styles.optionsGrid}>
-                {RISK_LEVELS.map((risk) => (
-                  <TouchableOpacity
-                    key={risk}
-                    style={[
-                      styles.optionCard,
-                      selectedRisk === risk && styles.optionCardSelected,
-                    ]}
-                    onPress={() => setSelectedRisk(risk)}
+                  <Text 
+                    variant="small" 
+                    weight="bold"
+                    color={index <= currentStep ? theme.bg : theme.muted}
                   >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        selectedRisk === risk && styles.optionTextSelected,
-                      ]}
-                    >
-                      {risk}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sector Preferences</Text>
-              <Text style={styles.sectionSubtitle}>Select sectors to include</Text>
-              <View style={styles.sectorsGrid}>
-                {SECTORS.map((sector) => (
-                  <TouchableOpacity
-                    key={sector}
-                    style={[
-                      styles.sectorChip,
-                      selectedSectors.includes(sector) && styles.sectorChipSelected,
-                    ]}
-                    onPress={() => toggleSector(sector)}
-                  >
-                    {selectedSectors.includes(sector) && (
-                      <Check size={16} color={Colors.text} />
-                    )}
-                    <Text
-                      style={[
-                        styles.sectorText,
-                        selectedSectors.includes(sector) && styles.sectorTextSelected,
-                      ]}
-                    >
-                      {sector}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {currentStep === 1 && (
-          <View style={styles.stepContent}>
-            <View style={styles.headerSection}>
-              <Text style={styles.stepTitle}>Suggested Portfolio</Text>
-              <Text style={styles.stepDescription}>
-                Based on your preferences, here&apos;s our recommendation
-              </Text>
-            </View>
-
-            <View style={styles.allocationCard}>
-              <Text style={styles.allocationTitle}>Asset Allocation</Text>
-              {[
-                { name: 'US Stocks', percent: 40, color: Colors.secondary },
-                { name: 'International Stocks', percent: 25, color: Colors.accent },
-                { name: 'Bonds', percent: 20, color: Colors.gold },
-                { name: 'Real Estate', percent: 10, color: Colors.warning },
-                { name: 'Cash', percent: 5, color: Colors.textMuted },
-              ].map((asset) => (
-                <View key={asset.name} style={styles.allocationRow}>
-                  <View style={styles.allocationLeft}>
-                    <View style={[styles.allocationDot, { backgroundColor: asset.color }]} />
-                    <Text style={styles.allocationName}>{asset.name}</Text>
-                  </View>
-                  <Text style={styles.allocationPercent}>{asset.percent}%</Text>
+                    {index + 1}
+                  </Text>
                 </View>
-              ))}
-            </View>
-
-            <View style={styles.metricsCard}>
-              <Text style={styles.metricsTitle}>Expected Metrics</Text>
-              <View style={styles.metricsGrid}>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Expected Return</Text>
-                  <Text style={styles.metricValue}>8.5%</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Volatility</Text>
-                  <Text style={styles.metricValue}>12.3%</Text>
-                </View>
-                <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Sharpe Ratio</Text>
-                  <Text style={styles.metricValue}>1.42</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {currentStep === 2 && (
-          <View style={styles.stepContent}>
-            <View style={styles.headerSection}>
-              <Text style={styles.stepTitle}>Stress Test Results</Text>
-              <Text style={styles.stepDescription}>
-                How your portfolio performs under different scenarios
-              </Text>
-            </View>
-
-            {[
-              { scenario: 'Market Crash (-30%)', impact: '-18.5%', color: Colors.danger },
-              { scenario: 'Interest Rate Spike', impact: '-8.2%', color: Colors.warning },
-              { scenario: 'Inflation Surge', impact: '-5.1%', color: Colors.warning },
-              { scenario: 'Bull Market (+40%)', impact: '+28.3%', color: Colors.accent },
-            ].map((test) => (
-              <View key={test.scenario} style={styles.stressCard}>
-                <Text style={styles.stressScenario}>{test.scenario}</Text>
-                <Text style={[styles.stressImpact, { color: test.color }]}>
-                  {test.impact}
-                </Text>
+                <Text variant="xs" muted center numberOfLines={1}>{step}</Text>
               </View>
             ))}
           </View>
-        )}
+        </Card>
 
-        {currentStep === 3 && (
-          <View style={styles.stepContent}>
-            <View style={styles.headerSection}>
-              <Text style={styles.stepTitle}>Review & Save</Text>
-              <Text style={styles.stepDescription}>
-                Your portfolio is ready to be saved
+        {/* Step 0: Constraints */}
+        {currentStep === 0 && (
+          <>
+            <Card style={styles.contentCard}>
+              <View style={styles.cardHeader}>
+                <Icon name="shield" size={28} color={theme.accent} />
+                <Text variant="h3" weight="semibold">Define Your Constraints</Text>
+              </View>
+              <Text variant="small" muted>
+                Set your risk tolerance and sector preferences
               </Text>
-            </View>
+            </Card>
 
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Portfolio Summary</Text>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Risk Level</Text>
-                <Text style={styles.summaryValue}>{selectedRisk}</Text>
+            {/* Risk Level */}
+            <Card style={styles.sectionCard} elevation="low">
+              <Text variant="body" weight="semibold">Risk Tolerance</Text>
+              <Text variant="small" muted style={styles.sectionDescription}>
+                Choose your comfort level with market volatility
+              </Text>
+              <View style={styles.optionsGrid}>
+                {RISK_LEVELS.map((risk) => (
+                  <Pressable
+                    key={risk}
+                    onPress={() => setSelectedRisk(risk)}
+                    style={styles.optionButton}
+                  >
+                    <Card 
+                      style={[
+                        styles.optionCard,
+                        selectedRisk === risk ? { 
+                          borderColor: theme.primary, 
+                          borderWidth: 2,
+                          backgroundColor: theme.primary + '10'
+                        } : {}
+                      ]}
+                      elevation={selectedRisk === risk ? "med" : "low"}
+                    >
+                      <View style={styles.optionIconContainer}>
+                        <Icon 
+                          name={selectedRisk === risk ? 'check-shield' : 'shield'} 
+                          size={28} 
+                          color={selectedRisk === risk ? theme.primary : theme.muted} 
+                        />
+                      </View>
+                      <Text 
+                        variant="small" 
+                        weight="semibold"
+                        color={selectedRisk === risk ? theme.primary : theme.text}
+                        center
+                      >
+                        {risk}
+                      </Text>
+                      <Text variant="xs" muted center>
+                        {(() => {
+                          switch (risk) {
+                            case 'Conservative':
+                              return 'Low risk, steady returns';
+                            case 'Moderate':
+                              return 'Balanced approach';
+                            default:
+                              return 'Higher risk, higher potential';
+                          }
+                        })()}
+                      </Text>
+                    </Card>
+                  </Pressable>
+                ))}
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Sectors</Text>
-                <Text style={styles.summaryValue}>
-                  {selectedSectors.length || 'All'}
-                </Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Expected Return</Text>
-                <Text style={[styles.summaryValue, { color: Colors.accent }]}>
-                  8.5%
-                </Text>
-              </View>
-            </View>
+            </Card>
 
-            <TouchableOpacity style={styles.saveButton}>
-              <Text style={styles.saveButtonText}>Save Portfolio</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Sectors */}
+            <Card style={styles.sectionCard}>
+              <Text variant="body" weight="semibold">Preferred Sectors</Text>
+              <Text variant="small" muted>Select one or more</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.sectorsScroll}
+                contentContainerStyle={styles.sectorsContent}
+              >
+                {SECTORS.map((sector) => (
+                  <Pressable
+                    key={sector}
+                    onPress={() => toggleSector(sector)}
+                    style={styles.sectorButton}
+                  >
+                    <Badge 
+                      variant={selectedSectors.includes(sector) ? 'success' : 'secondary'}
+                      size="medium"
+                    >
+                      {sector}
+                    </Badge>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </Card>
+          </>
         )}
-      </ScrollView>
 
-      <View style={styles.navigation}>
-        {currentStep > 0 && (
-          <TouchableOpacity
+        {/* Step 1: Suggestions */}
+        {currentStep === 1 && (
+          <>
+            <Card style={styles.contentCard}>
+              <View style={styles.cardHeader}>
+                <Icon name="portfolio" size={28} color={theme.primary} />
+                <Text variant="h3" weight="semibold">AI Suggestions</Text>
+              </View>
+              <Text variant="small" muted>
+                Based on your constraints, here are recommended portfolios
+              </Text>
+            </Card>
+
+            {['Balanced Growth', 'Tech Focus', 'Dividend Income'].map((portfolio, index) => (
+              <Card key={portfolio} style={styles.portfolioCard}>
+                <Text variant="body" weight="bold">{portfolio}</Text>
+                <Text variant="small" muted>Expected return: {12 + index * 2}% annually</Text>
+                <Button 
+                  variant={selectedPortfolio === portfolio ? "primary" : "secondary"} 
+                  size="small"
+                  onPress={() => setSelectedPortfolio(portfolio)}
+                >
+                  {selectedPortfolio === portfolio ? 'Selected' : 'Select Portfolio'}
+                </Button>
+              </Card>
+            ))}
+          </>
+        )}
+
+        {/* Step 2: Allocation */}
+        {currentStep === 2 && (
+          <>
+            <Card style={styles.contentCard}>
+              <View style={styles.cardHeader}>
+                <Icon name="sliders" size={28} color={theme.primary} />
+                <Text variant="h3" weight="semibold">Asset Allocation</Text>
+              </View>
+              <Text variant="small" muted>
+                Adjust the allocation percentages for each asset
+              </Text>
+            </Card>
+
+            {/* Allocation Sliders */}
+            <Card style={styles.allocationCard}>
+              <Text variant="body" weight="semibold">Portfolio Allocation</Text>
+              <Text variant="small" muted>
+                Total: {Object.values(allocations).reduce((sum, val) => sum + val, 0)}%
+              </Text>
+              
+              {ASSETS.map((asset) => (
+                <View key={asset.id} style={styles.sliderContainer}>
+                  <View style={styles.assetHeader}>
+                    <View style={styles.assetInfo}>
+                      <Text variant="body" weight="semibold">{asset.symbol}</Text>
+                      <Text variant="small" muted>{asset.name}</Text>
+                    </View>
+                    <View style={styles.allocationValue}>
+                      <Text variant="body" weight="bold" color={theme.primary}>
+                        {allocations[asset.id]}%
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.sliderContainer}>
+                    <View style={styles.sliderTrack}>
+                      <View 
+                        style={[
+                          styles.sliderFill, 
+                          { width: `${(allocations[asset.id] / 50) * 100}%` }
+                        ]} 
+                      />
+                      <View 
+                        style={[
+                          styles.sliderThumb, 
+                          { left: `${(allocations[asset.id] / 50) * 100}%` }
+                        ]} 
+                      />
+                    </View>
+                    <View style={styles.sliderLabels}>
+                      <Text variant="xs" muted>0%</Text>
+                      <Text variant="xs" muted>50%</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </Card>
+
+            {/* Add/Remove Assets */}
+            <Card style={styles.assetsCard}>
+              <Text variant="body" weight="semibold">Manage Assets</Text>
+              <View style={styles.assetActions}>
+                <Button 
+                  variant="secondary" 
+                  size="small"
+                  icon={<Icon name="plus" size={16} color={theme.primary} />}
+                >
+                  Add Asset
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="small"
+                  icon={<Icon name="trash" size={16} color={theme.danger} />}
+                >
+                  Remove Selected
+                </Button>
+              </View>
+            </Card>
+          </>
+        )}
+
+        {/* Step 3: Review */}
+        {currentStep === 3 && (
+          <>
+            <Card style={styles.contentCard}>
+              <View style={styles.cardHeader}>
+                <Icon name="check-circle" size={28} color={theme.primary} />
+                <Text variant="h3" weight="semibold">Portfolio Review</Text>
+              </View>
+              <Text variant="small" muted>
+                Review your portfolio configuration before saving
+              </Text>
+            </Card>
+
+            {/* Portfolio Summary */}
+            <Card style={styles.summaryCard}>
+              <Text variant="body" weight="semibold">Portfolio Summary</Text>
+              <View style={styles.summaryRow}>
+                <Text variant="small" muted>Risk Level:</Text>
+                <Badge variant="secondary" size="small">{selectedRisk}</Badge>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text variant="small" muted>Selected Portfolio:</Text>
+                <Text variant="small" weight="semibold">{selectedPortfolio}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text variant="small" muted>Total Allocation:</Text>
+                <Text variant="small" weight="semibold">
+                  {Object.values(allocations).reduce((sum, val) => sum + val, 0)}%
+                </Text>
+              </View>
+            </Card>
+
+            {/* Allocation Breakdown */}
+            <Card style={styles.breakdownCard}>
+              <Text variant="body" weight="semibold">Allocation Breakdown</Text>
+              {ASSETS.filter(asset => allocations[asset.id] > 0).map((asset) => (
+                <View key={asset.id} style={styles.breakdownRow}>
+                  <View style={styles.assetInfo}>
+                    <Text variant="small" weight="semibold">{asset.symbol}</Text>
+                    <Text variant="xs" muted>{asset.name}</Text>
+                  </View>
+                  <View style={styles.breakdownValue}>
+                    <Text variant="small" weight="bold">{allocations[asset.id]}%</Text>
+                    <View style={[styles.progressBar, { width: `${allocations[asset.id]}%` }]} />
+                  </View>
+                </View>
+              ))}
+            </Card>
+
+            {/* Action Buttons */}
+            <View style={styles.reviewActions}>
+              <Button
+                variant="secondary"
+                size="large"
+                icon={<Icon name="play" size={20} color={theme.primary} />}
+                style={styles.reviewButton}
+              >
+                Simulate Portfolio
+              </Button>
+              <Button
+                variant="primary"
+                size="large"
+                icon={<Icon name="save" size={20} color={theme.bg} />}
+                style={styles.reviewButton}
+              >
+                Save Portfolio
+              </Button>
+            </View>
+          </>
+        )}
+
+        {/* Navigation */}
+        <View style={styles.navigation}>
+          {currentStep > 0 && (
+            <Button
+              variant="ghost"
+              size="large"
+              onPress={() => setCurrentStep(currentStep - 1)}
+              style={styles.navButton}
+            >
+              Back
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            size="large"
+            onPress={() => {
+              if (currentStep < STEPS.length - 1) {
+                setCurrentStep(currentStep + 1);
+              } else {
+                // Portfolio saved, navigate back
+                router.push('/(tabs)/opportunities');
+              }
+            }}
             style={styles.navButton}
-            onPress={() => setCurrentStep((prev) => prev - 1)}
+            fullWidth={currentStep === 0}
+            disabled={currentStep === 1 && !selectedPortfolio}
           >
-            <Text style={styles.navButtonText}>Back</Text>
-          </TouchableOpacity>
-        )}
-        {currentStep < STEPS.length - 1 && (
-          <TouchableOpacity
-            style={[styles.navButton, styles.navButtonPrimary]}
-            onPress={() => setCurrentStep((prev) => prev + 1)}
-          >
-            <Text style={styles.navButtonTextPrimary}>Next</Text>
-            <ChevronRight size={20} color={Colors.text} />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
+            {currentStep < STEPS.length - 1 ? 'Next' : 'Create Portfolio'}
+          </Button>
+        </View>
+
+        <View style={{ height: 80 }} />
+      </ScrollView>
+      
+      <FAB onPress={() => router.push('/ai-chat')} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  content: {
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.md,
   },
-  stepsContainer: {
+  headerCard: {
+    overflow: 'hidden',
+    padding: 0,
+  },
+  headerGradient: {
+    padding: tokens.spacing.xl,
+    borderRadius: tokens.radius.lg,
+  },
+  headerContent: {
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
+  },
+  headerTitle: {
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  stepsCard: {},
+  stepsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   stepItem: {
     alignItems: 'center',
-    gap: 8,
-    flex: 1,
+    gap: tokens.spacing.xs,
+    width: 70,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border,
   },
-  stepCircleActive: {
-    borderColor: Colors.secondary,
-    backgroundColor: Colors.surface,
+  contentCard: {
+    gap: tokens.spacing.sm,
   },
-  stepCircleCompleted: {
-    backgroundColor: Colors.secondary,
-    borderColor: Colors.secondary,
-  },
-  stepNumber: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textMuted,
-  },
-  stepNumberActive: {
-    color: Colors.secondary,
-  },
-  stepLabel: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    textAlign: 'center',
-  },
-  stepLabelActive: {
-    color: Colors.text,
-    fontWeight: '600' as const,
-  },
-  content: {
-    flex: 1,
-  },
-  stepContent: {
-    padding: 24,
-    gap: 24,
-  },
-  headerSection: {
+  cardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: tokens.spacing.sm,
   },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    textAlign: 'center',
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  section: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+  sectionCard: {
+    gap: tokens.spacing.sm,
   },
   optionsGrid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: tokens.spacing.sm,
+  },
+  optionButton: {
+    flex: 1,
   },
   optionCard: {
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.lg,
+    paddingHorizontal: tokens.spacing.md,
+    minHeight: 120,
+    justifyContent: 'center',
+  },
+  optionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionDescription: {
+    marginBottom: tokens.spacing.sm,
+  },
+  sectorsScroll: {
+    marginVertical: tokens.spacing.sm,
+  },
+  sectorsContent: {
+    flexDirection: 'row',
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.xs,
+  },
+  sectorButton: {
+    flexShrink: 0,
+  },
+  portfolioCard: {
+    gap: tokens.spacing.sm,
+  },
+  navigation: {
+    flexDirection: 'row',
+    gap: tokens.spacing.sm,
+  },
+  navButton: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-  },
-  optionCardSelected: {
-    borderColor: Colors.secondary,
-    backgroundColor: Colors.secondary + '20',
-  },
-  optionText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  optionTextSelected: {
-    color: Colors.text,
-  },
-  sectorsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  sectorChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: Colors.border,
-  },
-  sectorChipSelected: {
-    borderColor: Colors.secondary,
-    backgroundColor: Colors.secondary + '20',
-  },
-  sectorText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  sectorTextSelected: {
-    color: Colors.text,
   },
   allocationCard: {
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
+    gap: tokens.spacing.md,
   },
-  allocationTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    marginBottom: 8,
+  sliderContainer: {
+    gap: tokens.spacing.sm,
   },
-  allocationRow: {
+  assetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  allocationLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  assetInfo: {
+    gap: 2,
   },
-  allocationDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  allocationValue: {
+    minWidth: 40,
+    alignItems: 'flex-end',
   },
-  allocationName: {
-    fontSize: 14,
-    color: Colors.text,
+  slider: {
+    marginVertical: tokens.spacing.xs,
   },
-  allocationPercent: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  sliderTrack: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
+    position: 'relative',
+    marginBottom: tokens.spacing.xs,
   },
-  metricsCard: {
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
+  sliderFill: {
+    height: '100%',
+    backgroundColor: '#00FF6A',
+    borderRadius: 4,
   },
-  metricsTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  sliderThumb: {
+    position: 'absolute',
+    top: -6,
+    width: 20,
+    height: 20,
+    backgroundColor: '#00FF6A',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    marginLeft: -10,
   },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  metricItem: {
-    flex: 1,
-    gap: 8,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: Colors.text,
-  },
-  stressCard: {
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 16,
+  sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
   },
-  stressScenario: {
-    fontSize: 16,
-    color: Colors.text,
-    fontWeight: '500' as const,
+  assetsCard: {
+    gap: tokens.spacing.sm,
   },
-  stressImpact: {
-    fontSize: 18,
-    fontWeight: '700' as const,
+  assetActions: {
+    flexDirection: 'row',
+    gap: tokens.spacing.sm,
   },
   summaryCard: {
-    backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    marginBottom: 8,
+    gap: tokens.spacing.sm,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  summaryLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+  breakdownCard: {
+    gap: tokens.spacing.sm,
   },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  saveButton: {
-    backgroundColor: Colors.secondary,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  navigation: {
+  breakdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 24,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: 12,
-  },
-  navButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: tokens.spacing.xs,
   },
-  navButtonPrimary: {
-    backgroundColor: Colors.secondary,
-    flexDirection: 'row',
-    gap: 8,
+  breakdownValue: {
+    alignItems: 'flex-end',
+    gap: 4,
   },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  progressBar: {
+    height: 4,
+    backgroundColor: '#00FF6A',
+    borderRadius: 2,
+    minWidth: 20,
   },
-  navButtonTextPrimary: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
+  reviewActions: {
+    gap: tokens.spacing.sm,
+  },
+  reviewButton: {
+    flex: 1,
   },
 });

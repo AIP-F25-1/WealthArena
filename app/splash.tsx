@@ -1,50 +1,175 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Dimensions, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import Colors from '@/constants/colors';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, Text, FoxMascot, tokens } from '@/src/design-system';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function SplashScreenWealth() {
+const { width } = Dimensions.get('window');
+
+export default function SplashScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      router.replace('/landing' as any);
-    }, 1400);
-    return () => clearTimeout(t);
-  }, [router]);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   return (
-    <View style={styles.container} testID="splash-root">
-      <LinearGradient colors={[Colors.backgroundGradientStart, Colors.backgroundGradientEnd]} style={styles.gradient}>
-        <View style={styles.logoWrap}>
-          <LinearGradient colors={[Colors.accent, Colors.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.logoOrb}>
-            <Text style={styles.logoGlyph}>WA</Text>
-          </LinearGradient>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>2</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.primary }]}>
+      {/* Decorative clouds */}
+      <View pointerEvents="none" style={[styles.cloud, styles.cloudTop, { backgroundColor: theme.primary, opacity: 0.3 }]} />
+      <View pointerEvents="none" style={[styles.cloud, styles.cloudBottom, { backgroundColor: theme.primary, opacity: 0.3 }]} />
+      
+      {/* Main content */}
+      <View style={styles.content}>
+        <Animated.View 
+          style={[
+            styles.logoContainer,
+            { 
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }]
+            }
+          ]}
+        >
+          {/* Add background circle for better fox visibility */}
+          <View style={[styles.foxBackground, { 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+          }]}>
+            <FoxMascot variant="excited" size={140} />
           </View>
-        </View>
-        <Text style={styles.title}>WealthArena</Text>
-        <Text style={styles.subtitle}>Playful investing. Powerful results.</Text>
-        <TouchableOpacity style={styles.cta} onPress={() => router.replace('/landing')} testID="splash-cta">
-          <Text style={styles.ctaText}>Enter</Text>
-        </TouchableOpacity>
-      </LinearGradient>
-    </View>
+        </Animated.View>
+
+        <Text 
+          variant="h1" 
+          weight="bold" 
+          center 
+          color="#FFFFFF"
+          style={styles.appName}
+        >
+          WealthArena
+        </Text>
+        <Text 
+          variant="body" 
+          center 
+          color="#FFFFFF"
+          style={styles.tagline}
+        >
+          Learn trading the fun way
+        </Text>
+      </View>
+
+      {/* Bottom Buttons */}
+      <View style={styles.buttonContainer}>
+        <Pressable
+          onPress={() => router.push('/signup')}
+          style={[styles.button, styles.primaryButton]}
+        >
+          <Text variant="body" weight="bold" color={theme.primary}>
+            Get Started
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/login')}
+          style={[styles.button, styles.secondaryButton]}
+        >
+          <Text variant="body" weight="semibold" color="#FFFFFF">
+            Already Have an Account
+          </Text>
+        </Pressable>
+        
+        <Text variant="small" center color="#FFFFFF" style={styles.copyright}>
+          WealthArena 2025
+        </Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  gradient: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  logoWrap: { position: 'relative', marginBottom: 20 },
-  logoOrb: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 16 },
-  logoGlyph: { fontSize: 36, fontWeight: '700' as const, color: Colors.text },
-  badge: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: '#FF3B9A', alignItems: 'center', justifyContent: 'center', shadowColor: '#FF3B9A', shadowOpacity: Platform.OS === 'web' ? 1 : 0.9, shadowRadius: 8 },
-  badgeText: { color: Colors.text, fontSize: 12, fontWeight: '700' as const },
-  title: { fontSize: 28, color: Colors.text, fontWeight: '700' as const, marginBottom: 6 },
-  subtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 28 },
-  cta: { backgroundColor: Colors.surface, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, borderWidth: 1, borderColor: Colors.border },
-  ctaText: { color: Colors.text, fontWeight: '700' as const },
+  container: { 
+    flex: 1,
+  },
+  cloud: {
+    position: 'absolute',
+    borderRadius: 100,
+  },
+  cloudTop: {
+    width: width * 0.6,
+    height: 180,
+    top: 100,
+    right: -50,
+  },
+  cloudBottom: {
+    width: width * 0.5,
+    height: 150,
+    top: 240,
+    left: -60,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: tokens.spacing.xl,
+  },
+  logoContainer: {
+    marginBottom: tokens.spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foxBackground: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+  },
+  appName: {
+    marginBottom: tokens.spacing.xs,
+  },
+  tagline: {
+    opacity: 0.9,
+  },
+  buttonContainer: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.xl,
+    gap: tokens.spacing.md,
+  },
+  button: {
+    height: 56,
+    borderRadius: tokens.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  primaryButton: {
+    backgroundColor: '#FFFFFF',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderColor: '#FFFFFF',
+    borderWidth: 2,
+  },
+  copyright: {
+    marginTop: tokens.spacing.md,
+    opacity: 0.7,
+  },
 });
