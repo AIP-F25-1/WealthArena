@@ -133,3 +133,4 @@ class PortfolioService {
 
 // Export singleton instance
 export const portfolioService = new PortfolioService();
+

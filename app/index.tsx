@@ -1,21 +1,19 @@
-import React from 'react';
-import { Redirect } from 'expo-router';
-import { useUserTier } from '@/contexts/UserTierContext';
+import React, { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { View } from 'react-native';
+import { useTheme } from '@/src/design-system';
 
-export default function Index() {
-  const { profile, isLoading } = useUserTier();
+export default function IndexScreen() {
+  const router = useRouter();
+  const { theme } = useTheme();
 
-  if (isLoading) return null;
+  useEffect(() => {
+    // Redirect to splash screen immediately
+    router.replace('/splash');
+  }, []);
 
-  const isAuthenticated = false;
-
-  if (!isAuthenticated) {
-    return <Redirect href="/splash" />;
-  }
-
-  if (!profile.tier) {
-    return <Redirect href="/onboarding" />;
-  }
-
-  return <Redirect href="/(tabs)/dashboard" />;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.bg }} />
+  );
 }
+

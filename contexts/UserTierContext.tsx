@@ -1,42 +1,61 @@
-import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type UserTier = 'beginner' | 'intermediate' | null;
-
 export interface UserProfile {
-  tier: UserTier;
-  name: string;
-  email: string;
-  joinedDate: string;
+  tier: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null;
+  xp: number;
+  level: number;
   achievements: string[];
-  completedChallenges: number;
-  totalChallenges: number;
+  joinDate: string;
+  totalTrades: number;
+  winRate: number;
+  totalPnL: number;
 }
 
-const STORAGE_KEY = '@wealtharena_user_profile';
+interface UserTierContextType {
+  profile: UserProfile;
+  isLoading: boolean;
+  updateProfile: (updates: Partial<UserProfile>) => void;
+  addXP: (amount: number) => void;
+  addAchievement: (achievement: string) => void;
+  resetProfile: () => void;
+}
 
-export const [UserTierProvider, useUserTier] = createContextHook(() => {
-  const [profile, setProfile] = useState<UserProfile>({
-    tier: null,
-    name: '',
-    email: '',
-    joinedDate: new Date().toISOString(),
-    achievements: [],
-    completedChallenges: 0,
-    totalChallenges: 10,
-  });
+const defaultProfile: UserProfile = {
+  tier: 'beginner',
+  xp: 0,
+  level: 1,
+  achievements: [],
+  joinDate: new Date().toISOString(),
+  totalTrades: 0,
+  winRate: 0,
+  totalPnL: 0,
+};
+
+const UserTierContext = createContext<UserTierContextType | undefined>(undefined);
+
+export function UserTierProvider({ children }: { children: React.ReactNode }) {
+  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load profile from storage on mount
   useEffect(() => {
     loadProfile();
   }, []);
 
+  // Save profile to storage whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+      saveProfile();
+    }
+  }, [profile, isLoading]);
+
   const loadProfile = async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setProfile(JSON.parse(stored));
+      const storedProfile = await AsyncStorage.getItem('userProfile');
+      if (storedProfile) {
+        const parsedProfile = JSON.parse(storedProfile);
+        setProfile({ ...defaultProfile, ...parsedProfile });
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
@@ -45,49 +64,67 @@ export const [UserTierProvider, useUserTier] = createContextHook(() => {
     }
   };
 
-  const saveProfile = async (newProfile: UserProfile) => {
+  const saveProfile = async () => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newProfile));
-      setProfile(newProfile);
+      await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
     } catch (error) {
       console.error('Failed to save user profile:', error);
     }
   };
 
-  const setUserTier = useCallback((tier: UserTier) => {
-    const updatedProfile = { ...profile, tier };
-    saveProfile(updatedProfile);
-  }, [profile]);
+  const updateProfile = (updates: Partial<UserProfile>) => {
+    setProfile(prev => ({ ...prev, ...updates }));
+  };
 
-  const updateProfile = useCallback((updates: Partial<UserProfile>) => {
-    const updatedProfile = { ...profile, ...updates };
-    saveProfile(updatedProfile);
-  }, [profile]);
-
-  const addAchievement = useCallback((achievement: string) => {
-    if (!profile.achievements.includes(achievement)) {
-      const updatedProfile = {
-        ...profile,
-        achievements: [...profile.achievements, achievement],
+  const addXP = (amount: number) => {
+    setProfile(prev => {
+      const newXP = prev.xp + amount;
+      const newLevel = Math.floor(newXP / 1000) + 1;
+      
+      // Determine tier based on level
+      let newTier: UserProfile['tier'] = 'beginner';
+      if (newLevel >= 10) newTier = 'expert';
+      else if (newLevel >= 7) newTier = 'advanced';
+      else if (newLevel >= 4) newTier = 'intermediate';
+      
+      return {
+        ...prev,
+        xp: newXP,
+        level: newLevel,
+        tier: newTier,
       };
-      saveProfile(updatedProfile);
-    }
-  }, [profile]);
+    });
+  };
 
-  const completeChallenge = useCallback(() => {
-    const updatedProfile = {
-      ...profile,
-      completedChallenges: profile.completedChallenges + 1,
-    };
-    saveProfile(updatedProfile);
-  }, [profile]);
+  const addAchievement = (achievement: string) => {
+    setProfile(prev => ({
+      ...prev,
+      achievements: [...prev.achievements, achievement],
+    }));
+  };
 
-  return useMemo(() => ({
-    profile,
-    isLoading,
-    setUserTier,
-    updateProfile,
-    addAchievement,
-    completeChallenge,
-  }), [profile, isLoading, setUserTier, updateProfile, addAchievement, completeChallenge]);
-});
+  const resetProfile = () => {
+    setProfile(defaultProfile);
+  };
+
+  return (
+    <UserTierContext.Provider value={{
+      profile,
+      isLoading,
+      updateProfile,
+      addXP,
+      addAchievement,
+      resetProfile,
+    }}>
+      {children}
+    </UserTierContext.Provider>
+  );
+}
+
+export function useUserTier() {
+  const context = useContext(UserTierContext);
+  if (context === undefined) {
+    throw new Error('useUserTier must be used within a UserTierProvider');
+  }
+  return context;
+}
