@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Maven/target
+.target
+**/target/
+**/out/
+**/.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node/others (defensive)
+node_modules/
+
+# Python cache (defensive)
+**/__pycache__/
+
+# Logs
+*.log
+
+# Docker build secrets/cache
+secrets*
+.dockerignore

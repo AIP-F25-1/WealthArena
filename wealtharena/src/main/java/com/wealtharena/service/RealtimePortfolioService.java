@@ -41,7 +41,7 @@ public class RealtimePortfolioService {
      */
     public PortfolioSnapshot getRealtimePortfolioSnapshot(Long portfolioId) {
         try 
-        {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {
             Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new RuntimeException("Portfolio not found"));
             
@@ -80,9 +80,9 @@ public class RealtimePortfolioService {
                 totalCost = totalCost.add(costBasis);
             }
             
-            // Create portfolio snapshot
+            // Create portfolio snapshot (cash not tracked in Portfolio entity; default to 0)
             PortfolioSnapshot snapshot = new PortfolioSnapshot(
-                portfolioId, portfolio.getName(), totalValue, portfolio.getCash(), totalCost);
+                portfolioId, portfolio.getName(), totalValue, java.math.BigDecimal.ZERO, totalCost);
             
             // Calculate weights
             for (PortfolioSnapshot.PositionSnapshot position : positions.values()) {
