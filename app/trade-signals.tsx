@@ -439,7 +439,7 @@ export default function TradeSignalsScreen() {
               </View>
             </Card>
           </Pressable>
-        )))}
+        ))}
 
         {/* Info Card */}
         <Card style={styles.infoCard}>
