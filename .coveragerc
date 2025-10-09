@@ -1,0 +1,8 @@
+[run]
+omit =
+    Data/stocksData/asx_market_data_adls.py
+    Data/newsData/news_scrape_finnhub_asx.py
+    Data/redditData/reddit_scrape_asx.py
+    Data/sqlDB/dbPing.py
+    Data/sqlDB/createSchema.py
+    dbConnection.py
