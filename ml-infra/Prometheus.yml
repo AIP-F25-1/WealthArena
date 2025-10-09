@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'wealtharena_ingest'
+    static_configs:
+      - targets: ['127.0.0.1:8000']   # use IPv4 instead of 'localhost'
+        labels:
+          component: 'ingest'
