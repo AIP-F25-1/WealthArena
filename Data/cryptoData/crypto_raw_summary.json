@@ -1,0 +1,63 @@
+{
+  "download_date": "2025-10-23T09:23:49.470729",
+  "num_symbols": 10,
+  "date_range": {
+    "start": "2022-10-23",
+    "end": "2025-10-23"
+  },
+  "target_currency": "AUD",
+  "years_requested": 3.0,
+  "symbols": {
+    "BTC-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\BTC-AUD_raw.csv",
+      "aud_symbol": "BTC-AUD"
+    },
+    "ETH-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\ETH-AUD_raw.csv",
+      "aud_symbol": "ETH-AUD"
+    },
+    "BNB-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\BNB-AUD_raw.csv",
+      "aud_symbol": "BNB-AUD"
+    },
+    "SOL-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\SOL-AUD_raw.csv",
+      "aud_symbol": "SOL-AUD"
+    },
+    "XRP-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\XRP-AUD_raw.csv",
+      "aud_symbol": "XRP-AUD"
+    },
+    "ADA-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\ADA-AUD_raw.csv",
+      "aud_symbol": "ADA-AUD"
+    },
+    "DOGE-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\DOGE-AUD_raw.csv",
+      "aud_symbol": "DOGE-AUD"
+    },
+    "TON-USD": {
+      "mode": "usd_to_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\TON-AUD_raw.csv",
+      "aud_symbol": "TON-AUD"
+    },
+    "TRX-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\TRX-AUD_raw.csv",
+      "aud_symbol": "TRX-AUD"
+    },
+    "AVAX-USD": {
+      "mode": "native_aud",
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto\\AVAX-AUD_raw.csv",
+      "aud_symbol": "AVAX-AUD"
+    }
+  },
+  "output_dir": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\cryptoData\\data\\raw_crypto"
+}

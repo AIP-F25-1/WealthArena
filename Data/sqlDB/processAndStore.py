@@ -1,15 +1,20 @@
-# fast_process_and_load.py
-import os, math
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import os
+import math
+import time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import numpy as np
+
 import polars as pl
 import fsspec
-import pyodbc
 from dotenv import load_dotenv
+
 from dbConnection import get_conn
 
-# ---------- Config ----------
+# ───────────────────────────── Config ─────────────────────────────
+
 ENV_PATH = Path(__file__).with_name("sqlDB.env")
 load_dotenv(ENV_PATH)
 
@@ -18,18 +23,50 @@ KEY  = os.getenv("AZURE_STORAGE_KEY")
 CONT = os.getenv("ADLS_CONTAINER", "raw")
 PREF = os.getenv("ADLS_RAW_PREFIX", "asxStocks")
 
-MAX_WORKERS        = min(8, (os.cpu_count() or 4))     # parallel readers
-BATCH_ROWS         = 75_000                             # rows per executemany batch
-MERGE_EVERY_ROWS   = 400_000                            # merge after this many staged rows
+# Delete sources in ADLS ONLY AFTER a successful MERGE
+DELETE_SOURCE = os.getenv("ADLS_DELETE_SOURCE", "true").strip().lower() in {"1", "true", "yes"}
 
-# ---------- ADLS ----------
+# Truncate target table BEFORE processing (full reload)
+TRUNCATE_PRICES_BEFORE = os.getenv("TRUNCATE_PRICES_BEFORE", "false").strip().lower() in {"1", "true", "yes"}
+
+# Parallelism + batching
+MAX_WORKERS        = min(8, (os.cpu_count() or 4))
+BATCH_ROWS         = int(os.getenv("BATCH_ROWS", "75000"))        # stage rows per executemany
+MERGE_EVERY_ROWS   = int(os.getenv("MERGE_EVERY_ROWS", "200000")) # merge more frequently in Airflow
+
+# Destination timezone for “local” timestamps
+ASX_TZ = "Australia/Sydney"
+
+# ────────────────────── ADLS / Storage access ─────────────────────
+
 fs = fsspec.filesystem("abfs", account_name=ACC, account_key=KEY)
 
-def list_paths():
-    return fs.glob(f"abfs://{CONT}/{PREF}/*_raw.csv")
+def list_paths() -> list[str]:
+    paths = fs.glob(f"abfs://{CONT}/{PREF}/*_raw.csv")
+    paths.sort()
+    return paths
 
-# ---------- RSI(14) – Wilder smoothing ----------
+def _rm_with_retries(path: str, attempts: int = 5, base_sleep: float = 0.25) -> bool:
+    """Delete an ADLS file with exponential backoff."""
+    for i in range(1, attempts + 1):
+        try:
+            if not fs.exists(path):
+                return True
+            fs.rm(path, recursive=False)
+            if not fs.exists(path):
+                return True
+        except Exception as e:
+            if i < attempts:
+                time.sleep(base_sleep * (2 ** (i - 1)))
+            else:
+                print(f"[WARN] Failed to delete {path} after {attempts} attempts: {e}")
+                return False
+    return False
+
+# ───────────────────── Technical indicators (Polars) ─────────────────────
+
 def rsi14_expr(close_expr: pl.Expr) -> pl.Expr:
+    """RSI(14) using Wilder's smoothing (EMA with alpha=1/14)."""
     diff = close_expr.diff()
     gain = pl.when(diff > 0).then(diff).otherwise(0.0)
     loss = pl.when(diff < 0).then(-diff).otherwise(0.0)
@@ -38,45 +75,88 @@ def rsi14_expr(close_expr: pl.Expr) -> pl.Expr:
     rs = ag / pl.when(al == 0).then(None).otherwise(al)
     return 100 - (100 / (1 + rs))
 
-# ---------- per-file processing ----------
-def process_one(abfs_path: str):
+# ────────────────────── Robust datetime parsing ──────────────────────
+
+DT_FORMATS_WITH_TZ = [
+    "%Y-%m-%d %H:%M:%S%:z",
+    "%Y-%m-%dT%H:%M:%S%:z",
+    "%Y-%m-%d %H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S%z",
+]
+DT_FORMATS_NAIVE = [
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+]
+
+def parse_datetime_utc(col: str = "Date") -> pl.Expr:
+    """Parse string timestamps to UTC Datetime; tz-aware→UTC; naive→UTC."""
+    candidates: list[pl.Expr] = []
+    for fmt in DT_FORMATS_WITH_TZ:
+        candidates.append(pl.col(col).str.strptime(pl.Datetime, format=fmt, strict=False).dt.convert_time_zone("UTC"))
+    for fmt in DT_FORMATS_NAIVE:
+        candidates.append(pl.col(col).str.strptime(pl.Datetime, format=fmt, strict=False).dt.replace_time_zone("UTC"))
+    return pl.coalesce(candidates).alias("ts_utc")
+
+# ────────────────────── Per-file processing ──────────────────────
+
+def process_one(abfs_path: str) -> tuple[str, pl.DataFrame]:
     name = Path(abfs_path).name
     symbol = name.replace("_raw.csv", "").upper()
-    with fs.open(abfs_path, "rb") as f:
-        df = pl.read_csv(f)
 
-    # Normalize columns
+    with fs.open(abfs_path, "rb") as f:
+        df = pl.read_csv(
+            f,
+            infer_schema_length=0,
+            try_parse_dates=False,
+            ignore_errors=True,
+            null_values=["", "null", "None"],
+        )
+
     df = df.rename({c: c.strip().title() for c in df.columns})
+    expected = {"Open","High","Low","Close","Volume","Date"}
+    missing = expected - set(df.columns)
+    if missing:
+        print(f"[WARN] {symbol}: missing columns {missing} in {name} — skipping file")
+        return symbol, pl.DataFrame()  # empty -> skipped
+
     df = df.select("Open","High","Low","Close","Volume","Date")
 
-    # Parse with tz, keep ASX local; also compute date_utc
-    df = (
-        df.with_columns([
-            pl.col("Date")
+    def clean_num(col: str) -> pl.Expr:
+        return (
+            pl.col(col)
               .str.strip_chars()
-              .str.strptime(pl.Datetime, strict=False)
-              .dt.convert_time_zone("Australia/Sydney")
-              .alias("ts_local"),
-            pl.col("Open").cast(pl.Float64, strict=False),
-            pl.col("High").cast(pl.Float64, strict=False),
-            pl.col("Low").cast(pl.Float64, strict=False),
-            pl.col("Close").cast(pl.Float64, strict=False),
-            pl.col("Volume").cast(pl.Int64, strict=False)
-        ])
-        .drop("Date")
-        .with_columns([
-            pl.col("ts_local").dt.convert_time_zone("UTC").dt.date().alias("date_utc")
-        ])
-        .sort("date_utc")
+              .str.replace_all(",", "")
+              .str.replace_all(r"\s+", "")
+        )
+
+    df = df.with_columns([
+        clean_num("Open").cast(pl.Float64, strict=False),
+        clean_num("High").cast(pl.Float64, strict=False),
+        clean_num("Low").cast(pl.Float64, strict=False),
+        clean_num("Close").cast(pl.Float64, strict=False),
+        clean_num("Volume").cast(pl.Int64,   strict=False),
+    ])
+
+    df = (
+        df.with_columns([parse_datetime_utc("Date").alias("ts_utc")])
+          .drop("Date")
+          .with_columns([
+              pl.col("ts_utc").dt.convert_time_zone(ASX_TZ).alias("ts_local"),
+              pl.col("ts_utc").dt.date().alias("date_utc"),
+          ])
+          .drop("ts_utc")
+          .sort("date_utc")
     )
+
+    if df.is_empty():
+        print(f"[WARN] {symbol}: no valid rows after cleaning — skipping file")
+        return symbol, pl.DataFrame()
 
     close = pl.col("Close")
     vol   = pl.col("Volume")
 
-    # Build features in sequential blocks (respect dependencies)
     out = (
         df
-        # SMAs
         .with_columns([
             close.rolling_mean(5).alias("SMA_5"),
             close.rolling_mean(10).alias("SMA_10"),
@@ -84,36 +164,29 @@ def process_one(abfs_path: str):
             close.rolling_mean(50).alias("SMA_50"),
             close.rolling_mean(200).alias("SMA_200"),
         ])
-        # EMAs
         .with_columns([
             close.ewm_mean(span=12, adjust=False, ignore_nulls=True).alias("EMA_12"),
             close.ewm_mean(span=26, adjust=False, ignore_nulls=True).alias("EMA_26"),
         ])
-        # MACD -> signal -> hist
         .with_columns([(pl.col("EMA_12") - pl.col("EMA_26")).alias("MACD")])
         .with_columns([pl.col("MACD").ewm_mean(span=9, adjust=False, ignore_nulls=True).alias("MACD_signal")])
         .with_columns([(pl.col("MACD") - pl.col("MACD_signal")).alias("MACD_hist")])
-        # RSI(14)
         .with_columns([rsi14_expr(close).alias("RSI_14")])
-        # Bollinger(20,2)
         .with_columns([
             pl.col("SMA_20").alias("BB_middle"),
-            (pl.col("SMA_20") + 2*close.rolling_std(20)).alias("BB_upper"),
-            (pl.col("SMA_20") - 2*close.rolling_std(20)).alias("BB_lower"),
+            (pl.col("SMA_20") + 2 * close.rolling_std(20)).alias("BB_upper"),
+            (pl.col("SMA_20") - 2 * close.rolling_std(20)).alias("BB_lower"),
         ])
-        # Returns + Log_Returns
         .with_columns([
             close.pct_change().alias("Returns"),
             (close / close.shift(1)).log().alias("Log_Returns"),
         ])
-        # Volatility(20, annualized), Momentum(20 %), Volume features
         .with_columns([
             (pl.col("Returns").rolling_std(20) * math.sqrt(252)).alias("Volatility_20"),
             (close / close.shift(20) - 1).alias("Momentum_20"),
             vol.rolling_mean(20).alias("Volume_SMA_20"),
         ])
         .with_columns([(vol / pl.col("Volume_SMA_20")).alias("Volume_Ratio")])
-        # attach symbol, finalize
         .with_columns([pl.lit(symbol).alias("symbol")])
         .select([
             "symbol","ts_local","date_utc","Open","High","Low","Close","Volume",
@@ -122,14 +195,16 @@ def process_one(abfs_path: str):
             "MACD","MACD_signal","MACD_hist",
             "BB_middle","BB_upper","BB_lower",
             "Returns","Log_Returns","Volatility_20","Momentum_20",
-            "Volume_SMA_20","Volume_Ratio"
+            "Volume_SMA_20","Volume_Ratio",
         ])
         .drop_nulls(subset=["Close","date_utc","ts_local"])
     )
     return symbol, out
 
-# ---------- DB load ----------
+# ────────────────────────── DB load helpers ──────────────────────────
+
 def insert_stage(conn, df_pl: pl.DataFrame) -> int:
+    """Insert rows into dbo.processed_stage in batches."""
     if df_pl.is_empty():
         return 0
 
@@ -140,33 +215,32 @@ def insert_stage(conn, df_pl: pl.DataFrame) -> int:
         "MACD","MACD_signal","MACD_hist",
         "BB_middle","BB_upper","BB_lower",
         "Returns","Log_Returns","Volatility_20","Momentum_20",
-        "Volume_SMA_20","Volume_Ratio"
+        "Volume_SMA_20","Volume_Ratio",
     ]
-    table = df_pl.select(cols).to_dict(as_series=False)
+    tbl = df_pl.select(cols).to_dict(as_series=False)
 
     def gen_rows():
         n = len(df_pl)
         for i in range(n):
             yield (
-                table["symbol"][i],
-                str(table["ts_local"][i]),        # ISO8601 with offset
-                table["date_utc"][i],
-                table["Open"][i], table["High"][i], table["Low"][i], table["Close"][i], table["Volume"][i],
-                table["SMA_5"][i], table["SMA_10"][i], table["SMA_20"][i], table["SMA_50"][i], table["SMA_200"][i],
-                table["EMA_12"][i], table["EMA_26"][i], table["RSI_14"][i],
-                table["MACD"][i], table["MACD_signal"][i], table["MACD_hist"][i],
-                table["BB_middle"][i], table["BB_upper"][i], table["BB_lower"][i],
-                table["Returns"][i], table["Log_Returns"][i], table["Volatility_20"][i], table["Momentum_20"][i],
-                table["Volume_SMA_20"][i], table["Volume_Ratio"][i]
+                tbl["symbol"][i],
+                str(tbl["ts_local"][i]),
+                tbl["date_utc"][i],
+                tbl["Open"][i], tbl["High"][i], tbl["Low"][i], tbl["Close"][i], tbl["Volume"][i],
+                tbl["SMA_5"][i], tbl["SMA_10"][i], tbl["SMA_20"][i], tbl["SMA_50"][i], tbl["SMA_200"][i],
+                tbl["EMA_12"][i], tbl["EMA_26"][i], tbl["RSI_14"][i],
+                tbl["MACD"][i], tbl["MACD_signal"][i], tbl["MACD_hist"][i],
+                tbl["BB_middle"][i], tbl["BB_upper"][i], tbl["BB_lower"][i],
+                tbl["Returns"][i], tbl["Log_Returns"][i], tbl["Volatility_20"][i], tbl["Momentum_20"][i],
+                tbl["Volume_SMA_20"][i], tbl["Volume_Ratio"][i],
             )
 
     cur = conn.cursor()
     cur.fast_executemany = True
     rows = list(gen_rows())
-    # Optional sanity:
-    # assert len(rows[0]) == 28, f"Row has {len(rows[0])} values, expected 28"
+
     for start in range(0, len(rows), BATCH_ROWS):
-        batch = rows[start:start+BATCH_ROWS]
+        batch = rows[start:start + BATCH_ROWS]
         cur.executemany("""
             INSERT INTO dbo.processed_stage (
                 symbol,ts_local,date_utc,[open],[high],[low],[close],volume,
@@ -181,8 +255,22 @@ def insert_stage(conn, df_pl: pl.DataFrame) -> int:
     conn.commit()
     return len(rows)
 
-def merge_stage(conn):
+def merge_stage(conn) -> tuple[int, int]:
+    """MERGE stage -> prices, return (inserted, updated), then TRUNCATE stage."""
     cur = conn.cursor()
+    # optional: reduce blocking pain
+    cur.execute("SET LOCK_TIMEOUT 60000;")
+
+    # identify DB for sanity
+    cur.execute("SELECT DB_NAME();")
+    dbname = cur.fetchone()[0]
+    print(f"[DB] MERGE running on database: {dbname}")
+
+    # temp table for actions
+    cur.execute("IF OBJECT_ID('tempdb..#act') IS NOT NULL DROP TABLE #act; "
+                "CREATE TABLE #act(action NVARCHAR(10));")
+
+    # MERGE and capture actions
     cur.execute("""
         MERGE dbo.processed_prices AS tgt
         USING (SELECT * FROM dbo.processed_stage) AS src
@@ -210,52 +298,133 @@ def merge_stage(conn):
                   src.macd,src.macd_signal,src.macd_hist,
                   src.bb_middle,src.bb_upper,src.bb_lower,
                   src.returns,src.log_returns,src.volatility_20,src.momentum_20,
-                  src.volume_sma_20,src.volume_ratio);
-        TRUNCATE TABLE dbo.processed_stage;
+                  src.volume_sma_20,src.volume_ratio)
+        OUTPUT $action INTO #act(action);
     """)
-    conn.commit()
 
-def main():
+    # read counts
+    cur.execute("""
+        SELECT
+          inserted = SUM(CASE WHEN action = 'INSERT' THEN 1 ELSE 0 END),
+          updated  = SUM(CASE WHEN action = 'UPDATE' THEN 1 ELSE 0 END)
+        FROM #act;
+    """)
+    row = cur.fetchone()
+    inserted, updated = (row or (0, 0))
+    print(f"MERGE summary -> inserted: {inserted or 0}, updated: {updated or 0}")
+
+    # cleanup
+    cur.execute("DROP TABLE #act;")
+    cur.execute("TRUNCATE TABLE dbo.processed_stage;")
+    conn.commit()
+    return (inserted or 0, updated or 0)
+
+# ───────────────────────────── Main ─────────────────────────────
+
+def main() -> None:
+    # force line-buffered stdout in Airflow
+    try:
+        import sys
+        sys.stdout.reconfigure(line_buffering=True)
+    except Exception:
+        pass
+
     paths = list_paths()
     print(f"Found {len(paths)} RAW files.")
     if not paths:
         return
 
     conn = get_conn()
+
+    # Defensive cleanup at the very start
+    cur = conn.cursor()
+    cur.execute("TRUNCATE TABLE dbo.processed_stage;")
+    if TRUNCATE_PRICES_BEFORE:
+        print("⚠️  TRUNCATE dbo.processed_prices (full reload requested)...")
+        cur.execute("TRUNCATE TABLE dbo.processed_prices;")
+    conn.commit()
+
     staged_rows = 0
     processed_files = 0
-    buffer: list[pl.DataFrame] = []
+    buffer: list[tuple[str, pl.DataFrame]] = []   # (path, df)
+    pending_to_delete: list[str] = []             # delete sources ONLY after successful MERGE
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-        futs = {ex.submit(process_one, p): p for p in paths}
-        for fut in as_completed(futs):
-            _, dfp = fut.result()
-            buffer.append(dfp)
-            processed_files += 1
+    def stage_buffer(buf: list[tuple[str, pl.DataFrame]]) -> int:
+        """Insert buffered dfs to stage (no delete here)."""
+        if not buf:
+            return 0
+        dfs = [df for _, df in buf if df is not None and not df.is_empty()]
+        if not dfs:
+            return 0
+        big = pl.concat(dfs, how="vertical_relaxed") if len(dfs) > 1 else dfs[0]
+        return insert_stage(conn, big)
 
-            # Stage when buffer big enough
-            if sum(len(x) for x in buffer) >= BATCH_ROWS:
-                big = pl.concat(buffer, how="vertical_relaxed")
-                staged_rows += insert_stage(conn, big)
-                buffer.clear()
+    def do_merge_and_delete() -> None:
+        """Run MERGE; if successful, delete the pending source files."""
+        nonlocal pending_to_delete
+        if not pending_to_delete:
+            return
+        inserted, updated = merge_stage(conn)
+        # Only delete the pending sources if MERGE succeeded
+        if DELETE_SOURCE:
+            ok = 0
+            for p in pending_to_delete:
+                if _rm_with_retries(p):
+                    ok += 1
+            print(f"Deleted {ok}/{len(pending_to_delete)} source file(s) from ADLS (post-MERGE).")
+        pending_to_delete = []
 
-            # Periodic MERGE
-            if staged_rows >= MERGE_EVERY_ROWS:
-                print(f"MERGE after staging ~{staged_rows} rows …")
-                merge_stage(conn)
-                staged_rows = 0
+    try:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+            futures = {ex.submit(process_one, p): p for p in paths}
+            for fut in as_completed(futures):
+                try:
+                    _, dfp = fut.result()
+                except Exception as e:
+                    bad = futures[fut]
+                    print(f"[WARN] Skipping file due to error: {bad} → {e}")
+                    continue
 
-            if processed_files % 100 == 0:
-                print(f"Processed {processed_files}/{len(paths)} files …")
+                path = futures[fut]
+                buffer.append((path, dfp))
+                processed_files += 1
 
-    if buffer:
-        big = pl.concat(buffer, how="vertical_relaxed")
-        staged_rows += insert_stage(conn, big)
+                # Stage when buffer grows large enough
+                if sum(len(x[1]) for x in buffer if x[1] is not None and not x[1].is_empty()) >= BATCH_ROWS:
+                    staged_rows += stage_buffer(buffer)
+                    # collect the sources we just staged; we will delete them AFTER MERGE
+                    pending_to_delete.extend([p for p, df in buffer if df is not None and not df.is_empty()])
+                    buffer.clear()
 
-    print("Final MERGE …")
-    merge_stage(conn)
-    conn.close()
-    print("✅ Done.")
+                # Periodic MERGE
+                if staged_rows >= MERGE_EVERY_ROWS:
+                    print(f"MERGE after staging ~{staged_rows} rows …")
+                    do_merge_and_delete()
+                    staged_rows = 0
+
+                if processed_files % 100 == 0:
+                    print(f"Processed {processed_files}/{len(paths)} files …")
+
+        # Flush remainder
+        if buffer:
+            staged_rows += stage_buffer(buffer)
+            pending_to_delete.extend([p for p, df in buffer if df is not None and not df.is_empty()])
+            buffer.clear()
+
+        print("Final MERGE …")
+        do_merge_and_delete()
+        print("✅ Done.")
+
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise

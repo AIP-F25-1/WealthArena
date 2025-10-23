@@ -1,28 +1,7 @@
-#!/usr/bin/env python3
-"""
-ASX Full List -> Yahoo Finance RAW Downloader (10-year history, HNS/ADLS-ready)
 
-- Downloads the official ASX companies CSV (online; banner-proof)
-- Normalizes to Yahoo tickers (CODE.AX), optional equities-only filter
-- Downloads ~10 years of 1d OHLCV from yfinance (batched)
-- Saves RAW CSVs locally (no processing)
-- Optionally uploads RAW to ADLS Gen2 (HNS enabled) under a directory (default: asxStocks)
-
-ENV FILE (azureCred.env) — optional (to enable upload):
-  AZURE_UPLOAD=true
-  AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=...   # your conn string
-  AZURE_STORAGE_FILESYSTEM=raw                                   # ADLS filesystem (container)
-  AZURE_PREFIX=asxStocks                                         # ADLS directory/prefix (optional)
-
-Run examples:
-  python asx_raw_downloader.py --equities-only
-  python asx_raw_downloader.py --batch-size 80 --sleep-between 2
-  python asx_raw_downloader.py --start-date 2015-01-01 --end-date 2025-10-07
-"""
 
 import os
 import io
-import re
 import sys
 import json
 import time
@@ -58,14 +37,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger("asx_raw")
 
+# Quiet the Azure SDK’s verbose HTTP logs
+logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure.storage").setLevel(logging.WARNING)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.ERROR)
+
 # ----------------------------
 # Azure uploader (RAW only, HNS/ADLS Gen2)
 # ----------------------------
-# Expects azureCred.env next to this script:
-#   AZURE_UPLOAD=true|false
-#   AZURE_STORAGE_CONNECTION_STRING=...
-#   AZURE_STORAGE_FILESYSTEM=raw
-#   AZURE_PREFIX=asxStocks
 try:
     from dotenv import load_dotenv
     load_dotenv(BASE_DIR / "azureCred.env")
@@ -76,37 +55,166 @@ AZURE_UPLOAD = os.getenv("AZURE_UPLOAD", "false").strip().lower() in {"1", "true
 AZURE_CONN_STR = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip()
 AZURE_FS = os.getenv("AZURE_STORAGE_FILESYSTEM", "").strip()  # ADLS filesystem (container)
 AZURE_PREFIX_DEFAULT = os.getenv("AZURE_PREFIX", "asxStocks").strip()
+AZURE_CLEAN_FIRST = os.getenv("AZURE_CLEAN_FIRST", "false").strip().lower() in {"1", "true", "yes"}
+AZURE_DELETE_SLEEP_MS = int(os.getenv("AZURE_DELETE_SLEEP_MS", "250"))
+AZURE_MAX_RETRIES = int(os.getenv("AZURE_MAX_RETRIES", "5"))
+
+# Optional Azure error classes
+try:
+    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError  # type: ignore
+except Exception:
+    ResourceNotFoundError = type("ResourceNotFoundError", (), {})
+    class HttpResponseError(Exception):  # basic fallback
+        def __init__(self, *a, **k):
+            super().__init__(*a)
+
+def _status_code_from_exc(e: Exception) -> Optional[int]:
+    resp = getattr(e, "response", None)
+    return getattr(resp, "status_code", None) if resp is not None else None
+
+def _headers_from_exc(e: Exception) -> Dict[str, str]:
+    try:
+        resp = getattr(e, "response", None)
+        if resp is None:
+            return {}
+        hdrs = getattr(resp, "headers", {}) or {}
+        return dict(hdrs)
+    except Exception:
+        return {}
+
+def _body_from_exc(e: Exception) -> str:
+    try:
+        resp = getattr(e, "response", None)
+        if resp is None:
+            return ""
+        if hasattr(resp, "text") and callable(resp.text):
+            return resp.text()  # type: ignore
+        if hasattr(resp, "text"):
+            return str(resp.text)
+        if hasattr(resp, "content"):
+            b = resp.content
+            if isinstance(b, bytes):
+                return b.decode("utf-8", errors="replace")
+            return str(b)
+    except Exception:
+        return ""
+    return ""
+
+def _should_retry(status: Optional[int]) -> bool:
+    if status is None:
+        return False
+    if status in (409, 412, 429):
+        return True
+    if 500 <= status <= 599:
+        return True
+    return False
+
+def _retry(op_name: str, func, max_attempts=5, base_sleep=0.3):
+    last = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return func()
+        except HttpResponseError as e:
+            sc = _status_code_from_exc(e)
+            hdrs = _headers_from_exc(e)
+            body = _body_from_exc(e)
+            logger.error(f"{op_name}: HttpResponseError status={sc} headers={hdrs} body={body[:500]}")
+            if _should_retry(sc) and attempt < max_attempts:
+                sleep = base_sleep * (2 ** (attempt - 1))
+                logger.warning(f"{op_name}: transient {sc}, retry {attempt}/{max_attempts-1} after {sleep:.2f}s")
+                time.sleep(sleep)
+                last = e
+                continue
+            raise
+        except Exception as e:
+            last = e
+            if attempt < max_attempts:
+                sleep = base_sleep * (2 ** (attempt - 1))
+                logger.warning(f"{op_name}: error '{e}', retry {attempt}/{max_attempts-1} after {sleep:.2f}s")
+                time.sleep(sleep)
+                continue
+            logger.error(f"{op_name}: failed after {max_attempts} attempts: {e}", exc_info=True)
+            raise
+    raise last or RuntimeError(f"{op_name}: unknown failure")
 
 class ADLSGen2Sink:
     """
     Minimal ADLS Gen2 uploader using Hierarchical Namespace (HNS).
-    Uses azure.storage.filedatalake so we can write directly to a directory like 'asxStocks/'.
+    - Creates filesystem and prefix directory if missing
+    - Optional delete-first
+    - Streaming upload (low memory)
+    - Verifies uploaded size
     """
-    def __init__(self, conn_str: str, filesystem: str, prefix: str):
+    def __init__(self, conn_str: str, filesystem: str, prefix: str, clean_first: bool = False):
         from azure.storage.filedatalake import DataLakeServiceClient  # lazy import
         self.svc = DataLakeServiceClient.from_connection_string(conn_str)
-        self.fs = self.svc.get_file_system_client(filesystem)
+        # Ensure filesystem exists
         try:
-            self.fs.create_file_system()
+            self.svc.create_file_system(filesystem)
         except Exception:
             pass
-        self.prefix = prefix.strip().strip("/")  # e.g., "asxStocks"
-        # Ensure directory exists (idempotent)
+        self.fs = self.svc.get_file_system_client(filesystem)
+
+        self.prefix = prefix.strip().strip("/")
+        self.clean_first = bool(clean_first)
         if self.prefix:
             try:
                 self.fs.create_directory(self.prefix)
             except Exception:
                 pass
 
+    def _full_path(self, name: str) -> str:
+        return f"{self.prefix}/{name}" if self.prefix else name
+
+    def delete_if_exists(self, remote_name: str) -> bool:
+        full_path = self._full_path(remote_name)
+        file_client = self.fs.get_file_client(full_path)
+
+        def _do_delete():
+            try:
+                file_client.get_file_properties()
+            except ResourceNotFoundError:
+                return False
+            try:
+                file_client.delete_file()
+                return True
+            except ResourceNotFoundError:
+                return False
+
+        deleted = _retry(
+            f"ADLS delete {full_path}",
+            _do_delete,
+            max_attempts=AZURE_MAX_RETRIES
+        )
+        if deleted and AZURE_DELETE_SLEEP_MS > 0:
+            time.sleep(AZURE_DELETE_SLEEP_MS / 1000.0)
+        return deleted
+
     def upload_file(self, local_path: Path, remote_name: Optional[str] = None):
         name = remote_name or local_path.name
-        # path under filesystem: {prefix}/{name} or just name if no prefix
-        full_path = f"{self.prefix}/{name}" if self.prefix else name
+        full_path = self._full_path(name)
         file_client = self.fs.get_file_client(full_path)
-        # upload_data with overwrite=True will create/replace the file
-        with open(local_path, "rb") as f:
-            data = f.read()
-        file_client.upload_data(data, overwrite=True)
+
+        if self.clean_first:
+            try:
+                if self.delete_if_exists(name):
+                    logger.info(f"ADLS: deleted old file '{full_path}' before upload")
+            except Exception as e:
+                logger.warning(f"ADLS: delete failed for '{full_path}' (continuing): {e}")
+
+        # Create (idempotent), then upload_data with overwrite=True (streams internally)
+        def _do_upload():
+            file_client.create_file()  # safe if exists
+            with open(local_path, "rb") as f:
+                file_client.upload_data(f, overwrite=True)  # streaming
+            return True
+
+        _retry(f"ADLS upload {full_path}", _do_upload, max_attempts=AZURE_MAX_RETRIES)
+
+        # Verify size
+        props = file_client.get_file_properties()
+        size = getattr(props, "size", None)
+        logger.info(f"ADLS uploaded '{full_path}' ({size} bytes)")
         return full_path
 
 # ----------------------------
@@ -164,7 +272,6 @@ def _parse_asx_csv_bytes(content: bytes) -> pd.DataFrame:
     return df
 
 def _canonical_company_rows(df: pd.DataFrame) -> pd.DataFrame:
-    # choose the code column
     code_col = None
     for c in df.columns:
         if str(c).strip().lower() in {"asx code", "code", "ticker", "symbol"}:
@@ -203,7 +310,6 @@ def download_asx_companies_csv(save_path: Path) -> pd.DataFrame:
 
     df = _canonical_company_rows(df_raw)
 
-    # optional columns
     def pick(cols, *names):
         names = [n.lower() for n in names]
         for c in cols:
@@ -223,7 +329,6 @@ def download_asx_companies_csv(save_path: Path) -> pd.DataFrame:
     if list_col: out["listing_date"] = df_raw.loc[df.index, list_col].values
     if mcap_col: out["market_cap"] = df_raw.loc[df.index, mcap_col].values
 
-    # Normalize to Yahoo ticker and rough type
     base = out["asx_code"].map(lambda x: RENAMES.get(x, x))
     out["ticker_yf"] = base + ".AX"
     out["security_type"] = out.get("company_name", pd.Series([""]*len(out))).map(_classify_from_name)
@@ -240,7 +345,8 @@ def download_asx_companies_csv(save_path: Path) -> pd.DataFrame:
 class RawDownloader:
     def __init__(self, symbols: List[str], start_date: str, end_date: str,
                  batch_size: int = 80, sleep_between: float = 2.0,
-                 adls_prefix: str = AZURE_PREFIX_DEFAULT):
+                 adls_prefix: str = AZURE_PREFIX_DEFAULT,
+                 clean_remote_first: bool = AZURE_CLEAN_FIRST):
         self.symbols = list(dict.fromkeys(symbols))  # de-dup preserve order
         self.start_date = start_date
         self.end_date = end_date
@@ -251,8 +357,14 @@ class RawDownloader:
         self.uploader = None
         if AZURE_UPLOAD and AZURE_CONN_STR and AZURE_FS:
             try:
-                self.uploader = ADLSGen2Sink(AZURE_CONN_STR, AZURE_FS, adls_prefix)
-                logger.info(f"ADLS upload enabled -> filesystem='{AZURE_FS}' prefix='{adls_prefix}' (raw only)")
+                self.uploader = ADLSGen2Sink(
+                    AZURE_CONN_STR, AZURE_FS, adls_prefix,
+                    clean_first=clean_remote_first,
+                )
+                logger.info(
+                    f"ADLS upload enabled -> filesystem='{AZURE_FS}' "
+                    f"prefix='{adls_prefix}' (raw only, clean_first={clean_remote_first})"
+                )
             except Exception as e:
                 logger.warning(f"ADLS upload disabled (init failed): {e}")
 
@@ -261,7 +373,6 @@ class RawDownloader:
     def _normalize_df(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
         if df is None or df.empty:
             return None
-        # yfinance sometimes returns lowercase/labeled cols; normalize
         rename_map = {c: str(c).title() for c in df.columns}
         df = df.rename(columns=rename_map)
         expected = ["Open", "High", "Low", "Close", "Volume"]
@@ -289,7 +400,6 @@ class RawDownloader:
                 df = fn()
                 norm = self._normalize_df(df)
                 if norm is not None and not norm.empty:
-                    # Simple sanity: positive prices
                     mask = (norm[["Open", "High", "Low", "Close"]] > 0).all(axis=1)
                     norm = norm.loc[mask].copy()
                     if not norm.empty:
@@ -357,6 +467,8 @@ def main():
     parser.add_argument("--end-date", default=None, help="YYYY-MM-DD (default: today)")
     parser.add_argument("--azure-prefix", default=AZURE_PREFIX_DEFAULT,
                         help="Directory/prefix inside filesystem for uploads (default: asxStocks)")
+    parser.add_argument("--clean-remote-first", action="store_true",
+                        help="Delete existing remote files with same name before upload (also AZURE_CLEAN_FIRST=true)")
     args = parser.parse_args()
 
     # 1) Download & save ASX list (reference)
@@ -388,6 +500,7 @@ def main():
         batch_size=args.batch_size,
         sleep_between=args.sleep_between,
         adls_prefix=args.azure_prefix,
+        clean_remote_first=bool(args.clean_remote_first or AZURE_CLEAN_FIRST),
     )
 
     try:
@@ -396,7 +509,6 @@ def main():
             logger.error("❌ No RAW data downloaded successfully.")
             sys.exit(1)
 
-        # Simple summary JSON for bookkeeping (RAW-only)
         summary = {
             "download_date": datetime.now().isoformat(),
             "num_symbols": len(all_raw),
@@ -416,7 +528,7 @@ def main():
         n = len(list(RAW_DIR.glob('*.csv')))
         print(f"  {RAW_DIR}: {n} file(s)")
         if AZURE_UPLOAD and AZURE_CONN_STR and AZURE_FS:
-            print(f"☁️  ADLS upload: ENABLED (filesystem='{AZURE_FS}', prefix='{args.azure_prefix}')")
+            print(f"☁️  ADLS upload: ENABLED (filesystem='{AZURE_FS}', prefix='{args.azure_prefix}', clean_first={bool(args.clean_remote_first or AZURE_CLEAN_FIRST)})")
         else:
             print("☁️  ADLS upload: disabled (set AZURE_UPLOAD=true and provide connection string + filesystem)")
 
