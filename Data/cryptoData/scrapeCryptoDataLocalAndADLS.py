@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# File: scrapeCommoditiesAU.py  (ADLS-only: no local CSVs)
+# File: scrapeCryptoData.py
 import os, sys, json, time, logging, warnings
 from pathlib import Path
 from typing import List, Optional, Dict
@@ -15,24 +15,26 @@ warnings.filterwarnings("ignore")
 
 BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR  = BASE_DIR / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+RAW_DIR  = (BASE_DIR / "data" / "raw_crypto")
+for p in (LOG_DIR, RAW_DIR):
+    p.mkdir(parents=True, exist_ok=True)
 
-LOG_FILE = LOG_DIR / "commodities_download.log"
+LOG_FILE = LOG_DIR / "crypto_download.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.FileHandler(LOG_FILE, encoding="utf-8"),
               logging.StreamHandler()]
 )
-logger = logging.getLogger("commodities_adls_only")
+logger = logging.getLogger("crypto_aud_adls")
 
-# Quiet verbose SDK logs if Azure libs are present
+# Quiet Azure SDK logs (if installed)
 logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("azure.storage").setLevel(logging.WARNING)
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.ERROR)
 
 # ----------------------------
-# Azure uploader (ADLS Gen2, HNS)
+# Azure uploader (optional; ADLS Gen2 HNS)
 # ----------------------------
 try:
     from dotenv import load_dotenv
@@ -42,18 +44,17 @@ except Exception:
 
 AZURE_UPLOAD = os.getenv("AZURE_UPLOAD", "false").strip().lower() in {"1","true","yes"}
 AZURE_CONN_STR = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "").strip()
-AZURE_FS = os.getenv("AZURE_STORAGE_FILESYSTEM", "").strip()  # ADLS filesystem (container)
-AZURE_PREFIX_DEFAULT = os.getenv("AZURE_PREFIX_COMMODITIES", "asxCommodities").strip()
+AZURE_FS = os.getenv("AZURE_STORAGE_FILESYSTEM", "").strip()  # container / filesystem
+AZURE_PREFIX_DEFAULT = os.getenv("AZURE_PREFIX_CRYPTO", "asxCrypto").strip()
 AZURE_CLEAN_FIRST = os.getenv("AZURE_CLEAN_FIRST", "false").strip().lower() in {"1","true","yes"}
 AZURE_DELETE_SLEEP_MS = int(os.getenv("AZURE_DELETE_SLEEP_MS", "250"))
 AZURE_MAX_RETRIES = int(os.getenv("AZURE_MAX_RETRIES", "5"))
 
-# Optional Azure error classes
 try:
     from azure.core.exceptions import ResourceNotFoundError, HttpResponseError  # type: ignore
 except Exception:
     ResourceNotFoundError = type("ResourceNotFoundError", (), {})
-    class HttpResponseError(Exception):  # basic fallback
+    class HttpResponseError(Exception):  # fallback
         def __init__(self, *a, **k):
             super().__init__(*a)
 
@@ -61,7 +62,7 @@ def _status_code_from_exc(e: Exception) -> Optional[int]:
     resp = getattr(e, "response", None)
     return getattr(resp, "status_code", None) if resp is not None else None
 
-def _headers_from_exc(e: Exception) -> Dict[str, str]:
+def _headers_from_exc(e: Exception) -> Dict[str,str]:
     try:
         resp = getattr(e, "response", None)
         if resp is None:
@@ -92,7 +93,7 @@ def _body_from_exc(e: Exception) -> str:
 def _should_retry(status: Optional[int]) -> bool:
     if status is None:
         return False
-    if status in (409, 412, 429):
+    if status in (409, 412, 429):  # conflict, precondition failed, rate limit
         return True
     if 500 <= status <= 599:
         return True
@@ -128,10 +129,11 @@ def _retry(op_name: str, func, max_attempts=AZURE_MAX_RETRIES, base_sleep=0.3):
 
 class ADLSGen2Sink:
     """
-    ADLS Gen2 uploader using Hierarchical Namespace (HNS).
-    - Creates filesystem and prefix directory if missing
+    Minimal ADLS Gen2 uploader using HNS:
+    - Creates filesystem and (optional) prefix directory
     - Optional delete-first
-    - Uploads in-memory bytes (no local files)
+    - Streaming upload with overwrite
+    - Verifies uploaded size
     """
     def __init__(self, conn_str: str, filesystem: str, prefix: str, clean_first: bool = False):
         from azure.storage.filedatalake import DataLakeServiceClient  # lazy import
@@ -155,6 +157,7 @@ class ADLSGen2Sink:
     def delete_if_exists(self, remote_name: str) -> bool:
         full_path = self._full_path(remote_name)
         fc = self.fs.get_file_client(full_path)
+
         def _do_delete():
             try:
                 fc.get_file_properties()
@@ -165,46 +168,43 @@ class ADLSGen2Sink:
                 return True
             except ResourceNotFoundError:
                 return False
+
         deleted = _retry(f"ADLS delete {full_path}", _do_delete)
         if deleted and AZURE_DELETE_SLEEP_MS > 0:
             time.sleep(AZURE_DELETE_SLEEP_MS / 1000.0)
         return deleted
 
-    def upload_bytes(self, data: bytes, remote_name: str) -> str:
-        full_path = self._full_path(remote_name)
+    def upload_file(self, local_path: Path, remote_name: Optional[str] = None):
+        name = remote_name or Path(local_path).name
+        full_path = self._full_path(name)
         fc = self.fs.get_file_client(full_path)
+
         if self.clean_first:
             try:
-                if self.delete_if_exists(remote_name):
+                if self.delete_if_exists(name):
                     logger.info(f"ADLS: deleted old file '{full_path}' before upload")
             except Exception as e:
                 logger.warning(f"ADLS: delete failed for '{full_path}' (continuing): {e}")
+
         def _do_upload():
-            fc.create_file()
-            fc.upload_data(data, overwrite=True)
+            fc.create_file()  # idempotent
+            with open(local_path, "rb") as f:
+                fc.upload_data(f, overwrite=True)
             return True
+
         _retry(f"ADLS upload {full_path}", _do_upload)
+
         props = fc.get_file_properties()
         size = getattr(props, "size", None)
         logger.info(f"ADLS uploaded '{full_path}' ({size} bytes)")
         return full_path
 
 # ----------------------------
-# Commodity list (Yahoo tickers)
+# Defaults
 # ----------------------------
-DEFAULT_COMMODITIES: List[str] = [
-    "CL=F",  # WTI Crude Oil
-    "BZ=F",  # Brent Crude
-    "NG=F",  # Natural Gas
-    "GC=F",  # Gold
-    "SI=F",  # Silver
-    "HG=F",  # Copper
-    "ZC=F",  # Corn
-    "ZS=F",  # Soybeans
-    "ZW=F",  # Wheat
-    "KC=F",  # Coffee
-    "CC=F",  # Cocoa
-    "CT=F",  # Cotton
+DEFAULT_CRYPTOS = [
+    "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD",
+    "ADA-USD", "DOGE-USD", "TON-USD", "TRX-USD", "AVAX-USD",
 ]
 
 # ----------------------------
@@ -278,8 +278,7 @@ def _squeeze_to_series(obj: pd.DataFrame) -> pd.Series:
 
 def _fetch_fx_audusd(start: str, end: str) -> pd.Series:
     """
-    Daily Series with AUDUSD (USD per 1 AUD).
-    For USD→AUD conversion: AUD = USD * (1 / AUDUSD).
+    Daily Series with AUDUSD (USD per 1 AUD). For USD→AUD: AUD = USD * (1 / AUDUSD).
     """
     fx = yf.download("AUDUSD=X", start=start, end=end, interval="1d",
                      auto_adjust=True, progress=False, group_by="column")
@@ -291,7 +290,7 @@ def _fetch_fx_audusd(start: str, end: str) -> pd.Series:
     s.index = idx.normalize()
     s = s.sort_index()
     s.name = "AUDUSD"
-    s = s.asfreq("D").ffill()  # fill weekends/holidays
+    s = s.asfreq("D").ffill()  # fill weekends/holidays so we can align with crypto
     return s
 
 def _convert_usd_df_to_aud(df_usd: pd.DataFrame, fx_series: pd.Series) -> pd.DataFrame:
@@ -307,16 +306,22 @@ def _convert_usd_df_to_aud(df_usd: pd.DataFrame, fx_series: pd.Series) -> pd.Dat
     out = aligned.drop(columns=["AUDUSD"]).reset_index()
     return out
 
+def _save_csv(df: pd.DataFrame, out_name: str) -> Path:
+    path = (RAW_DIR / out_name).resolve()
+    df.to_csv(path, index=False)
+    logger.info(f"Saved -> {path}")
+    return path
+
 # ----------------------------
 # Main
 # ----------------------------
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Commodities RAW downloader with AUD support (ADLS-only)")
+    parser = argparse.ArgumentParser(description="Crypto RAW downloader with AUD support (LOCAL + optional ADLS upload)")
     parser.add_argument("--symbols", nargs="*", default=None,
-                        help="Space-separated Yahoo commodity tickers (e.g., GC=F CL=F). Default: common set.")
+                        help="Space-separated USD symbols (e.g., BTC-USD ETH-USD). Default: majors.")
     parser.add_argument("--symbols-file", type=str, default=None,
-                        help="Text file, one ticker per line.")
+                        help="Text file, one USD symbol per line.")
     parser.add_argument("--target-currency", default="AUD", choices=["USD","AUD"],
                         help="Save prices in this currency (default: AUD).")
     parser.add_argument("--years", type=float, default=3.0,
@@ -325,16 +330,12 @@ def main():
     parser.add_argument("--sleep-between", type=float, default=2.0)
     parser.add_argument("--start-date", default=None, help="YYYY-MM-DD (overrides --years)")
     parser.add_argument("--end-date", default=None, help="YYYY-MM-DD (default: today)")
+    # Azure options (same style as your commodities script)
     parser.add_argument("--azure-prefix", default=AZURE_PREFIX_DEFAULT,
-                        help="Directory/prefix inside filesystem for uploads (default from AZURE_PREFIX_COMMODITIES)")
+                        help="Directory/prefix inside filesystem for uploads (default: cryptoRaw)")
     parser.add_argument("--clean-remote-first", action="store_true",
-                        help="Delete existing remote files with same name before upload (or AZURE_CLEAN_FIRST=true)")
+                        help="Delete remote before upload (also AZURE_CLEAN_FIRST=true)")
     args = parser.parse_args()
-
-    # ADLS-only: require proper config
-    if not (AZURE_UPLOAD and AZURE_CONN_STR and AZURE_FS):
-        logger.error("This script is ADLS-only. Set AZURE_UPLOAD=true and provide AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_FILESYSTEM.")
-        sys.exit(2)
 
     # Build symbol list
     syms: List[str] = []
@@ -347,7 +348,7 @@ def main():
     if args.symbols:
         syms += args.symbols
     if not syms:
-        syms = DEFAULT_COMMODITIES[:]
+        syms = DEFAULT_CRYPTOS[:]
 
     # Date range defaults — use years if start not provided
     today = datetime.now().date()
@@ -358,17 +359,26 @@ def main():
         days = int(round(args.years * 365.2425))  # approx leap-aware
         start_date = (today - timedelta(days=days)).isoformat()
 
-    logger.info(f"Commodities: {len(syms)}")
+    logger.info(f"Symbols (USD base list): {len(syms)}")
     logger.info(f"Target currency: {args.target_currency}")
     logger.info(f"Date range: {start_date} → {end_date}")
-    logger.info(f"ADLS filesystem='{AZURE_FS}', prefix='{args.azure_prefix}'")
+    logger.info(f"Output: {RAW_DIR}")
 
-    # ADLS uploader
-    uploader = ADLSGen2Sink(
-        AZURE_CONN_STR, AZURE_FS, args.azure_prefix,
-        clean_first=bool(args.clean_remote_first or AZURE_CLEAN_FIRST),
-    )
-    logger.info(f"ADLS upload ENABLED (clean_first={bool(args.clean_remote_first or AZURE_CLEAN_FIRST)})")
+    # Optional ADLS uploader
+    uploader = None
+    if AZURE_UPLOAD and AZURE_CONN_STR and AZURE_FS:
+        try:
+            uploader = ADLSGen2Sink(
+                AZURE_CONN_STR, AZURE_FS, args.azure_prefix,
+                clean_first=bool(args.clean_remote_first or AZURE_CLEAN_FIRST),
+            )
+            logger.info(
+                f"ADLS upload enabled -> filesystem='{AZURE_FS}' "
+                f"prefix='{args.azure_prefix}' "
+                f"(clean_first={bool(args.clean_remote_first or AZURE_CLEAN_FIRST)})"
+            )
+        except Exception as e:
+            logger.warning(f"ADLS upload disabled (init failed): {e}")
 
     fx_series = None
     if args.target_currency == "AUD":
@@ -380,38 +390,54 @@ def main():
     for i in range(0, len(syms), args.batch_size):
         batch = syms[i:i + args.batch_size]
         logger.info(f"Batch {i//args.batch_size+1}: {len(batch)} symbols")
-        for sym in batch:
+        for usd_sym in batch:
             try:
-                df_usd = _try_hist(sym, start_date, end_date)
-                if df_usd is None:
-                    continue
-
-                # Normalize remote filename (avoid '=' in path)
-                base = sym.replace('=', '_')
-
                 if args.target_currency == "USD":
-                    csv_bytes = df_usd.to_csv(index=False).encode("utf-8")
-                    remote_name = f"{base}_USD_raw.csv"
-                    remote_path = uploader.upload_bytes(csv_bytes, remote_name)
-                    results[sym] = {"mode": "native_usd", "remote": remote_path}
+                    df = _try_hist(usd_sym, start_date, end_date)
+                    if df is None:
+                        continue
+                    out_path = _save_csv(df, f"{usd_sym}_raw.csv")
+                    results[usd_sym] = {"mode": "native_usd", "file": str(out_path)}
                     ok += 1
                 else:
-                    df_aud = _convert_usd_df_to_aud(df_usd, fx_series)
-                    csv_bytes = df_aud.to_csv(index=False).encode("utf-8")
-                    remote_name = f"{base}_AUD_raw.csv"
-                    remote_path = uploader.upload_bytes(csv_bytes, remote_name)
-                    results[sym] = {"mode": "usd_to_aud", "remote": remote_path}
-                    ok += 1
+                    # AUD: try native AUD first
+                    aud_sym = usd_sym.replace("-USD", "-AUD")
+                    df_aud = _try_hist(aud_sym, start_date, end_date)
+                    if df_aud is not None:
+                        out_path = _save_csv(df_aud, f"{aud_sym}_raw.csv")
+                        results[usd_sym] = {"mode": "native_aud", "file": str(out_path), "aud_symbol": aud_sym}
+                        ok += 1
+                    else:
+                        # Fallback: USD pair then convert via AUDUSD=X
+                        df_usd = _try_hist(usd_sym, start_date, end_date)
+                        if df_usd is None:
+                            continue
+                        df_conv = _convert_usd_df_to_aud(df_usd, fx_series)
+                        out_path = _save_csv(df_conv, f"{usd_sym.replace('-USD','-AUD')}_raw.csv")
+                        results[usd_sym] = {
+                            "mode": "usd_to_aud",
+                            "file": str(out_path),
+                            "aud_symbol": usd_sym.replace("-USD","-AUD")
+                        }
+                        ok += 1
+
+                # Optional ADLS upload
+                if uploader:
+                    try:
+                        remote = uploader.upload_file(out_path, remote_name=Path(out_path).name)
+                        logger.info(f"Uploaded RAW to ADLS: {remote}")
+                    except Exception as e:
+                        logger.warning(f"ADLS upload failed for {usd_sym}: {e}")
 
             except Exception as e:
-                logger.error(f"❌ {sym}: {e}")
+                logger.error(f"❌ {usd_sym}: {e}")
 
         if i + args.batch_size < len(syms):
             logger.info(f"Sleeping {args.sleep_between:.1f}s between batches…")
             time.sleep(args.sleep_between)
 
     if ok == 0:
-        logger.error("❌ No commodity data uploaded to ADLS.")
+        logger.error("❌ No crypto data saved.")
         sys.exit(1)
 
     summary = {
@@ -421,26 +447,34 @@ def main():
         "target_currency": args.target_currency,
         "years_requested": float(args.years) if not args.start_date else None,
         "symbols": results,
+        "output_dir": str(RAW_DIR.resolve()),
         "adls": {
-            "filesystem": AZURE_FS,
-            "prefix": args.azure_prefix,
-            "clean_first": bool(args.clean_remote_first or AZURE_CLEAN_FIRST),
+            "enabled": bool(uploader is not None),
+            "filesystem": AZURE_FS if uploader else None,
+            "prefix": args.azure_prefix if uploader else None,
+            "clean_first": bool(args.clean_remote_first or AZURE_CLEAN_FIRST) if uploader else None,
         },
         "notes": [
-            "Yahoo continuous futures/spot proxies, daily interval.",
-            "If target=AUD, USD OHLC converted via 1/AUDUSD; FX is forward-filled over weekends/holidays.",
-            "No local files are written; uploads are in-memory bytes.",
+            "Daily OHLCV via Yahoo. For AUD: use native -AUD if present, else convert from USD via AUDUSD=X.",
+            "FX series is forward-filled over weekends/holidays to align 7-day crypto."
         ],
     }
-
-    # Print JSON summary so Airflow captures it
-    print(json.dumps(summary, indent=2))
+    summary_path = BASE_DIR / "crypto_raw_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print("\n" + "="*70)
-    print(f"📊 COMMODITIES RAW SUMMARY (ADLS-only, {args.target_currency})")
+    print(f"📊 CRYPTO RAW SUMMARY (LOCAL, {args.target_currency})")
     print("="*70)
-    print(f"✅ Symbols uploaded: {ok}")
-    print(f"☁️  ADLS: filesystem='{AZURE_FS}', prefix='{args.azure_prefix}'")
+    print(f"✅ Symbols saved: {ok}")
+    print(f"📅 Date range: {start_date} → {end_date}")
+    print(f"📁 Raw folder: {RAW_DIR}")
+    print(f"🧾 Summary:   {summary_path.name}")
+    n = len(list(RAW_DIR.glob('*.csv')))
+    print(f"  {RAW_DIR}: {n} file(s)")
+    if uploader:
+        print(f"☁️  ADLS upload: ENABLED (filesystem='{AZURE_FS}', prefix='{args.azure_prefix}', clean_first={bool(args.clean_remote_first or AZURE_CLEAN_FIRST)})")
+    else:
+        print("☁️  ADLS upload: disabled (set AZURE_UPLOAD=true and provide connection string + filesystem)")
     print("\n🎉 Done!")
 
 if __name__ == "__main__":

@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+# File: preprocessCommoditiesLocal.py
+from __future__ import annotations
+
+import os
+import math
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Tuple
+
+import polars as pl
+
+# ───────────────────────────── Config (LOCAL ONLY) ─────────────────────────────
+BASE_DIR = Path(__file__).resolve().parent
+
+# Raw dirs produced by scrapeCommoditiesAU.py
+# (that script saves into data/raw_commodities by default)
+RAW_DIRS = [
+    BASE_DIR / "data" / "raw_commodities",
+    BASE_DIR / "data" / "commodities" / "raw",  # alternate layout if you change later
+]
+
+DATA_OUT_DIR  = BASE_DIR / "data" / "commodities"
+PROCESSED_DIR = DATA_OUT_DIR / "processed"
+PARQUET_DIR   = DATA_OUT_DIR / "processed_parquet"
+LOG_DIR       = BASE_DIR / "logs"
+
+for p in (PROCESSED_DIR, PARQUET_DIR, LOG_DIR):
+    p.mkdir(parents=True, exist_ok=True)
+
+MAX_WORKERS = min(8, (os.cpu_count() or 4))  # tune for your machine
+
+# For timestamp presentation; commodities have exchange hours, but this is a label only
+LOCAL_TZ = "Australia/Sydney"
+
+# ───────────────────────────── Time parsing helpers ─────────────────────────────
+DT_FORMATS_WITH_TZ = [
+    "%Y-%m-%d %H:%M:%S%:z",
+    "%Y-%m-%dT%H:%M:%S%:z",
+    "%Y-%m-%d %H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S%z",
+]
+DT_FORMATS_NAIVE = [
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d",
+]
+
+def parse_datetime_utc(col: str = "Date") -> pl.Expr:
+    """Parse string timestamps to UTC Datetime; tz-aware→UTC; naive→UTC."""
+    candidates: list[pl.Expr] = []
+    for fmt in DT_FORMATS_WITH_TZ:
+        candidates.append(
+            pl.col(col)
+              .str.strptime(pl.Datetime, format=fmt, strict=False)
+              .dt.convert_time_zone("UTC")
+        )
+    for fmt in DT_FORMATS_NAIVE:
+        candidates.append(
+            pl.col(col)
+              .str.strptime(pl.Datetime, format=fmt, strict=False)
+              .dt.replace_time_zone("UTC")
+        )
+    return pl.coalesce(candidates)
+
+# ───────────────────────────── Indicators ─────────────────────────────
+def rsi14_expr(close: pl.Expr) -> pl.Expr:
+    """RSI(14) using Wilder smoothing via EMA."""
+    diff = close.diff()
+    gain = pl.when(diff > 0).then(diff).otherwise(0.0)
+    loss = pl.when(diff < 0).then(-diff).otherwise(0.0)
+    ag = gain.ewm_mean(alpha=1/14, adjust=False, ignore_nulls=True)
+    al = loss.ewm_mean(alpha=1/14, adjust=False, ignore_nulls=True)
+    rs = ag / pl.when(al == 0).then(None).otherwise(al)
+    return 100 - (100 / (1 + rs))
+
+def ema_expr(close: pl.Expr, span: int) -> pl.Expr:
+    """EMA via alpha derived from span."""
+    alpha = 2.0 / (span + 1.0)
+    return close.ewm_mean(alpha=alpha, adjust=False, ignore_nulls=True)
+
+# ───────────────────────────── IO helpers ─────────────────────────────
+def list_local_raw() -> List[Path]:
+    """
+    Find *_raw.csv produced by the commodities downloader.
+    That script uses names like:
+      - GC_F_AUD_raw.csv  (AUD converted)
+      - GC_F_USD_raw.csv  (native USD)
+      - GC_F_raw.csv      (generic, if you wrote files that way)
+    """
+    paths: List[Path] = []
+    for root in RAW_DIRS:
+        if root.exists():
+            paths.extend(sorted(root.glob("*_raw.csv")))
+            paths.extend(sorted(root.glob("*_AUD_raw.csv")))
+            paths.extend(sorted(root.glob("*_USD_raw.csv")))
+    # de-dup
+    return sorted({p.resolve() for p in paths})
+
+def _clean_num(col: str) -> pl.Expr:
+    return (
+        pl.col(col)
+          .cast(pl.Utf8, strict=False)
+          .str.strip_chars()
+          .str.replace_all(",", "")
+          .str.replace_all(r"\s+", "")
+          .cast(pl.Float64, strict=False)
+    )
+
+def _infer_symbol_and_ccy(csv_name: str) -> Tuple[str, str]:
+    """
+    Reverse the downloader's filename transform ( '=' -> '_' ) and detect quote currency.
+    Examples:
+      'GC_F_AUD_raw.csv'  -> ('GC=F', 'AUD')
+      'CL_F_USD_raw.csv'  -> ('CL=F', 'USD')
+      'NG_F_raw.csv'      -> ('NG=F', 'USD?') -> returns 'UNK' if not in name
+    """
+    base = csv_name
+    ccy = "UNK"
+    if base.endswith("_AUD_raw.csv"):
+        ccy = "AUD"
+        base = base[:-len("_AUD_raw.csv")]
+    elif base.endswith("_USD_raw.csv"):
+        ccy = "USD"
+        base = base[:-len("_USD_raw.csv")]
+    elif base.endswith("_raw.csv"):
+        base = base[:-len("_raw.csv")]
+    # revert underscore back to '=' to match Yahoo ticker (e.g., GC=F, CL=F)
+    symbol = base.replace("_", "=").upper()
+    return symbol, ccy
+
+# ───────────────────────────── Per-file processing ─────────────────────────────
+def process_one_local(csv_path: Path) -> Tuple[str, pl.DataFrame]:
+    """
+    Read a commodity *_raw.csv (columns: Open,High,Low,Close,Volume,Date),
+    compute indicators, and return processed Polars DataFrame.
+    """
+    name = csv_path.name
+    symbol, quote_ccy = _infer_symbol_and_ccy(name)
+
+    try:
+        df = pl.read_csv(
+            csv_path,
+            infer_schema_length=0,
+            try_parse_dates=False,
+            ignore_errors=True,
+            null_values=["", "null", "None"],
+        )
+    except Exception as e:
+        print(f"[WARN] {name}: read failed → {e}")
+        return symbol, pl.DataFrame()
+
+    df = df.rename({c: c.strip().title() for c in df.columns})
+    expected = {"Open","High","Low","Close","Volume","Date"}
+    missing = expected - set(df.columns)
+    if missing:
+        print(f"[WARN] {symbol}: missing {missing} — skipping")
+        return symbol, pl.DataFrame()
+
+    # Clean nums & parse time
+    df = (
+        df.with_columns([
+            _clean_num("Open").alias("Open"),
+            _clean_num("High").alias("High"),
+            _clean_num("Low").alias("Low"),
+            _clean_num("Close").alias("Close"),
+            # Futures volumes tend to be integers, but keep Float64 for consistency
+            pl.col("Volume").cast(pl.Float64, strict=False),
+            parse_datetime_utc("Date").alias("ts_utc"),
+        ])
+        .drop("Date")
+        .with_columns([
+            pl.col("ts_utc").dt.convert_time_zone(LOCAL_TZ).alias("ts_local"),
+            pl.col("ts_utc").dt.date().alias("date_utc"),
+        ])
+        .drop("ts_utc")
+        .filter(pl.all_horizontal(pl.col(["Open","High","Low","Close"]).is_not_null()))
+        .sort("date_utc")
+    )
+
+    if df.is_empty():
+        print(f"[WARN] {symbol}: empty after cleaning — skipping")
+        return symbol, pl.DataFrame()
+
+    close = pl.col("Close")
+    vol   = pl.col("Volume")
+
+    out = (
+        df
+        # Simple MAs
+        .with_columns([
+            close.rolling_mean(5).alias("SMA_5"),
+            close.rolling_mean(10).alias("SMA_10"),
+            close.rolling_mean(20).alias("SMA_20"),
+            close.rolling_mean(50).alias("SMA_50"),
+            close.rolling_mean(200).alias("SMA_200"),
+        ])
+        # EMAs
+        .with_columns([
+            ema_expr(close, 12).alias("EMA_12"),
+            ema_expr(close, 26).alias("EMA_26"),
+        ])
+        # MACD
+        .with_columns((pl.col("EMA_12") - pl.col("EMA_26")).alias("MACD"))
+        .with_columns(pl.col("MACD").ewm_mean(alpha=2/(9+1), adjust=False, ignore_nulls=True).alias("MACD_signal"))
+        .with_columns((pl.col("MACD") - pl.col("MACD_signal")).alias("MACD_hist"))
+        # RSI
+        .with_columns(rsi14_expr(close).alias("RSI_14"))
+        # Bollinger (20, 2σ)
+        .with_columns([
+            pl.col("SMA_20").alias("BB_middle"),
+            (pl.col("SMA_20") + 2 * close.rolling_std(20)).alias("BB_upper"),
+            (pl.col("SMA_20") - 2 * close.rolling_std(20)).alias("BB_lower"),
+        ])
+        # Returns
+        .with_columns([
+            close.pct_change().alias("Returns"),
+            (close / close.shift(1)).log().alias("Log_Returns"),
+        ])
+        # Volatility (annualized from 20-day std of daily returns)
+        .with_columns([
+            (pl.col("Returns").rolling_std(20) * math.sqrt(252)).alias("Volatility_20"),  # 252 trading days
+            (close / close.shift(20) - 1).alias("Momentum_20"),
+            vol.rolling_mean(20).alias("Volume_SMA_20"),
+        ])
+        .with_columns((vol / pl.col("Volume_SMA_20")).alias("Volume_Ratio"))
+        .with_columns([
+            pl.lit(symbol).alias("symbol"),
+            pl.lit(quote_ccy).alias("quote_ccy")
+        ])
+        .select([
+            "symbol","quote_ccy","ts_local","date_utc","Open","High","Low","Close","Volume",
+            "SMA_5","SMA_10","SMA_20","SMA_50","SMA_200",
+            "EMA_12","EMA_26","RSI_14",
+            "MACD","MACD_signal","MACD_hist",
+            "BB_middle","BB_upper","BB_lower",
+            "Returns","Log_Returns","Volatility_20","Momentum_20",
+            "Volume_SMA_20","Volume_Ratio",
+        ])
+        .drop_nulls(subset=["Close","date_utc","ts_local"])
+    )
+
+    return symbol, out
+
+def save_processed_per_symbol(symbol: str, df_pl: pl.DataFrame, quote_ccy: str | None = None) -> Path:
+    suffix = f"_{quote_ccy}" if quote_ccy and quote_ccy != "UNK" else ""
+    safe_symbol = symbol.replace("=", "_")
+    out_path = PROCESSED_DIR / f"{safe_symbol}{suffix}_processed.csv"
+    df_pl.write_csv(out_path)
+    return out_path
+
+def save_parquet_per_symbol(symbol: str, df_pl: pl.DataFrame, quote_ccy: str | None = None) -> Path:
+    suffix = f"_{quote_ccy}" if quote_ccy and quote_ccy != "UNK" else ""
+    safe_symbol = symbol.replace("=", "_")
+    pq_path = PARQUET_DIR / f"{safe_symbol}{suffix}_processed.parquet"
+    df_pl.write_parquet(pq_path, compression="zstd", maintain_order=True, use_statistics=True)
+    return pq_path
+
+# ───────────────────────────── Main ─────────────────────────────
+def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser(description="Preprocess local COMMODITIES CSVs (no Azure, Polars, indicators).")
+    parser.add_argument("--make-parquet", action="store_true",
+                        help="Also write one Parquet per symbol to data/commodities/processed_parquet/")
+    parser.add_argument("--max-workers", type=int, default=MAX_WORKERS)
+    args = parser.parse_args()
+
+    paths = list_local_raw()
+    print(f"Found {len(paths)} RAW commodity file(s) under:")
+    for r in RAW_DIRS:
+        if r.exists():
+            print(f"  - {r}")
+
+    if not paths:
+        print("No *_raw.csv files found. Put your raw commodity CSVs in one of the folders above.")
+        return
+
+    processed_files   = 0
+    written_rows      = 0
+    empty_or_skipped  = 0
+    outputs: List[Path] = []
+    parquet_outputs: List[Path] = []
+
+    def _work(p: Path) -> Tuple[str, str, pl.DataFrame]:
+        symbol, dfp = process_one_local(p)
+        # re-infer ccy from file name for file naming
+        _, ccy = _infer_symbol_and_ccy(p.name)
+        return symbol, ccy, dfp
+
+    with ThreadPoolExecutor(max_workers=int(args.max_workers)) as ex:
+        futs = {ex.submit(_work, p): p for p in paths}
+        for i, fut in enumerate(as_completed(futs), 1):
+            src = futs[fut]
+            try:
+                symbol, ccy, dfp = fut.result()
+            except Exception as e:
+                print(f"[WARN] {src.name}: processing failed → {e}")
+                empty_or_skipped += 1
+                continue
+
+            processed_files += 1
+            if dfp.is_empty():
+                empty_or_skipped += 1
+                continue
+
+            out_csv = save_processed_per_symbol(symbol, dfp, ccy)
+            outputs.append(out_csv)
+            written_rows += dfp.height
+
+            if args.make_parquet:
+                pq = save_parquet_per_symbol(symbol, dfp, ccy)
+                parquet_outputs.append(pq)
+
+            if processed_files % 50 == 0:
+                print(f"Processed {processed_files}/{len(paths)} files …")
+
+    print(f"\nPer-symbol CSVs written: {len(outputs)}   rows: ~{written_rows:,}")
+    if args.make_parquet:
+        print(f"Per-symbol Parquet files: {len(parquet_outputs)}  → {PARQUET_DIR}")
+    print(f"Skipped/empty files:      {empty_or_skipped}")
+    print("\n✅ Done.")
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
