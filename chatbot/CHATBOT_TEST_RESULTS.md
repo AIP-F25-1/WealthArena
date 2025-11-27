@@ -126,7 +126,7 @@ POST /v1/chat
 
 ## Summary
 
-### ✅ All Core Functionality Working
+### All Core Functionality Working
 
 1. **Health Endpoint** (`/health`)
    - Returns correct status and version

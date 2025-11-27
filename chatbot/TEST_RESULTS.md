@@ -49,7 +49,7 @@ Tested on: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
    - ✅ Chroma collection accessible
    - ✅ Can retrieve context chunks from knowledge base
 
-### Test Commands Used
+### Test Commands
 
 ```powershell
 # Start server
@@ -97,7 +97,7 @@ Total chunks in collection: 5,801
 
 ## Conclusion
 
-✅ **All core functionality tests passed successfully!**
+**All core functionality tests passed successfully!**
 
 The chatbot is:
 - Running correctly with GROQ API integration

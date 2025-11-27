@@ -5,7 +5,6 @@
 #   - Data Pipeline: PDF ingestion and vector store setup
 #   - Docker Deployment: Build and run containerized application
 #   - Azure Deployment: Deploy to Azure App Service
-# ============================================================================
 #
 # Usage:
 #   # Data Pipeline (default)
