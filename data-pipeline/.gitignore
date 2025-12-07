@@ -1,0 +1,35 @@
+# Environment files with secrets - DO NOT COMMIT
+sqlDB.env
+azureCred.env
+
+# Logs
+logs/
+*.log
+
+# Data directories (optional - uncomment if you don't want to track data files)
+# data/raw/
+# data/processed/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+

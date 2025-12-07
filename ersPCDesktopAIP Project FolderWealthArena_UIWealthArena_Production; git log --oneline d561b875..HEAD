@@ -1,0 +1,18 @@
+* [33m7e1e7fd9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m)[m Update dashboard to use dynamic symbols from processed data
+* [33ma883ef6c[m Fix markdown rendering to handle bullet points and escape characters
+* [33m76f27d98[m Fix learning page theme content-first flow and progress tracking
+* [33m0a9ca480[m Limit onboarding to maximum 8 questions with improved flow
+* [33me85277a6[m Fix data pipeline processing with MVP mode and JSON verification
+* [33m9e025fa3[m Add internal API endpoints and local market data storage service
+* [33m3d6534e9[m Fix backend authentication and error handling for JWT tokens
+*   [33md561b875[m[33m ([m[1;31morigin/dev[m[33m)[m Merge pull request #139 from AIP-F25-1/ml--infra
+[32m|[m[33m\[m  
+[32m|[m * [33m5645d4af[m[33m ([m[1;31morigin/ml--infra[m[33m)[m RL training integration to promethues
+[32m|[m * [33m6c5e5028[m updated branch
+[32m|[m[32m/[m  
+*   [33m3caac0d3[m Merge pull request #138 from AIP-F25-1/data
+[34m|[m[35m\[m  
+[34m|[m * [33mfcbcbc2a[m[33m ([m[1;31morigin/data[m[33m)[m Update Airflow fixing Scheduler issues
+* [35m|[m [33m6c0ae808[m fix: removed accidental Groq API key from script
+* [35m|[m [33m2f1f5faf[m Decluttered folder and removed redundant files
+* [35m|[m [33m8fa945e1[m feat: Added PDF-based RAG pipeline, Groq Llama integration, metrics, and deployment fixes

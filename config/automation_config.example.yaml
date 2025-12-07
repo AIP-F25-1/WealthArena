@@ -1,0 +1,308 @@
+# WealthArena Automation Configuration Example
+# Copy this file to automation_config.yaml and customize with your settings
+
+# ============================================================================
+# Azure Settings
+# ============================================================================
+azure:
+  # Azure resource group name (must be unique within subscription)
+  resource_group: "rg-wealtharena-northcentralus"
+  
+  # Azure region for deployment
+  location: "northcentralus"
+  
+  # Unique suffix for resource naming (e.g., dev environment indicator)
+  suffix: "jg1ve2"  # Change to unique value
+  
+  # Azure subscription ID (optional, uses default if empty)
+  subscription_id: ""
+  
+  # Azure Auto-Setup Configuration
+  # Enable automatic resource creation if they don't exist
+  auto_create_resources: false
+  
+  # Check for existing resources before creating (recommended)
+  check_existing_resources: true
+  
+  # Use random suffix if not provided (prevents naming conflicts)
+  use_random_suffix: false
+  
+  # Length of random suffix (6-12 characters recommended)
+  suffix_length: 8
+  
+  # Prefix for resource naming (used with suffix for consistent naming)
+  resource_naming_prefix: "wealtharena"
+
+
+# ============================================================================
+# Cost Optimization Settings
+# ============================================================================
+cost_optimization:
+  # Enable cost optimization mode (uses cheaper tiers, skips expensive services)
+  enabled: false
+  
+  # Use Basic tier for SQL Database (cheaper than Standard)
+  use_basic_tier: false
+  
+  # Use LRS (Locally Redundant Storage) instead of GRS for Storage Account
+  use_lrs_storage: false
+  
+  # Skip Cosmos DB creation (expensive, not critical for MVP)
+  skip_cosmos_db: false
+  
+  # Skip Databricks creation (expensive, can use local processing)
+  skip_databricks: false
+
+
+# ============================================================================
+# Phase Control - Skip time-consuming phases for faster iterations
+# ============================================================================
+phase_control:
+  # Skip frontend testing (local Expo server)
+  skip_frontend_test: false
+  
+  # Skip data download (use if data already exists in data-pipeline/data/)
+  skip_data_download: false
+  
+  # Skip data processing (use if already processed and stored)
+  skip_data_processing: false
+  
+  # Skip data export for RL training (use if data already prepared or training is skipped)
+  skip_data_export: false
+  
+  # Skip RL training (use if models already exist in rl-training/checkpoints/)
+  # WARNING: Training typically takes 2-8 hours
+  skip_rl_training: false
+  
+  # Skip Azure deployment phases (verification, deployment, upload)
+  skip_deployment: false
+  
+  # Skip APK build (skips EAS build step)
+  skip_apk_build: false
+
+
+# ============================================================================
+# Data Pipeline Settings
+# ============================================================================
+data_pipeline:
+  # Start date for historical data download
+  # MVP Mode: Reduced to 2 years (2023-01-01) for faster processing
+  start_date: "2022-01-01"
+  
+  # End date for historical data download
+  end_date: "2025-01-01"
+  
+  # Asset classes to download
+  asset_classes:
+    - asx        # Australian Stock Exchange stocks
+    - crypto     # Cryptocurrencies
+    - forex      # Foreign exchange pairs
+    - commodities # Commodities (gold, oil, etc.)
+    - etfs       # Exchange-traded funds
+  
+  # Batch size for API requests (adjust based on rate limits)
+  batch_size: 80
+  
+  # Process only symbols used for training (MVP optimization)
+  process_only_training_symbols: false
+
+
+# ============================================================================
+# MVP Mode - Optimized for fast deployment and low cost
+# ============================================================================
+mvp_mode:
+  # Enable MVP mode (reduces data scope and training time)
+  enabled: false
+  
+  # Symbol limits for ASX stocks
+  asx_stock_limit: 100          # Download top 100 ASX stocks only (by market cap)
+  asx_training_limit: 50        # Train on top 50 stocks only
+  process_only_training_symbols: true  # Skip processing non-training symbols
+  
+  # Filtering criteria for stock selection
+  skip_low_volume_stocks: true
+  min_market_cap_millions: 500
+  min_daily_volume: 100000
+  
+  # Other asset classes (keep all - already small)
+  include_all_crypto: true      # ~5 symbols
+  include_all_forex: true       # ~7 symbols
+  include_all_commodities: true # ~7 symbols
+  include_all_etfs: true        # ~3 symbols
+
+
+# ============================================================================
+# RL Training Settings
+# ============================================================================
+rl_training:
+  # Path to training configuration file
+  config_file: "config/production_config.yaml"
+  
+  # Maximum training iterations
+  # MVP Mode: Reduced to 500 for faster training (vs 2000 for full mode)
+  max_iterations: 2000
+  
+  # Target reward threshold (stop training if achieved)
+  # MVP Mode: Reduced to 200.0 for quicker convergence (vs 500.0 for full mode)
+  target_reward: 500.0
+  
+  # Number of parallel workers
+  num_workers: 4
+  
+  # Enable quick training mode for MVP (reduced iterations, smaller batches)
+  quick_training_mode: false
+  
+  # Checkpoint frequency for training progress
+  checkpoint_frequency: 100
+
+
+# ============================================================================  
+# Deployment Settings
+# ============================================================================
+deployment:
+  # Azure Web App name for backend API
+  backend_app_name: "wealtharena-backend"
+
+  # Azure Web App name for chatbot service
+  chatbot_app_name: "wealtharena-chatbot"
+
+  # Azure Web App name for RL inference service
+  rl_service_app_name: "wealtharena-rl"
+
+  # Azure Storage account name (for model storage)
+  storage_account: "stwealtharenadev"
+  
+  # Azure SQL Server name
+  sql_server: "sql-wealtharena-dev"
+  
+  # App Service Plan Configuration
+  app_service_plan:
+    # Shared plan name for backend and chatbot (cost optimization)
+    shared_plan_name: "wealtharena-plan"
+    
+    # SKU for shared plan (B1 = Basic 1, B2 = Basic 2, S1 = Standard 1, etc.)
+    # B1: 1.75GB RAM, 1 vCPU (~$13/month)
+    # B2: 3.5GB RAM, 2 vCPU (~$26/month)
+    # S1: 1.75GB RAM, 1 vCPU with auto-scaling (~$55/month)
+    shared_plan_sku: "B1"
+    
+    # Separate plan name for RL service (requires more memory for Ray/PyTorch)
+    rl_plan_name: "wealtharena-rl-plan"
+    
+    # SKU for RL service plan (B2 recommended for Ray/PyTorch memory requirements)
+    rl_plan_sku: "B2"
+    
+    # Whether to share plans or use separate plans for each service
+    # true = Backend + Chatbot share one plan, RL service uses separate plan (recommended)
+    # false = Each service uses its own plan (higher cost)
+    share_plans: true
+
+
+# ============================================================================
+# Testing Settings
+# ============================================================================
+testing:
+  # Health check timeout in seconds
+  health_check_timeout: 30
+  
+  # Number of retry attempts for health checks
+  health_check_retries: 3
+  
+  # Run full integration tests (if available)
+  run_integration_tests: true
+
+
+# ============================================================================
+# APK Build Settings
+# ============================================================================
+apk_build:
+  # EAS build profile (production, preview, development)
+  build_profile: "production"
+  
+  # Automatically submit to Play Store after build
+  auto_submit: false
+  
+  # Download APK locally after build
+  download_apk: true
+
+
+# ============================================================================
+# Logging Settings
+# ============================================================================
+logging:
+  # Logging verbosity level
+  log_level: "INFO"  # Options: INFO, DEBUG, WARNING, ERROR
+  
+  # Directory for log files
+  log_directory: "automation_logs"
+  
+  # Number of days to retain log files
+  keep_logs_days: 30
+
+
+# ============================================================================
+# Notification Settings (Optional)
+# ============================================================================
+notifications:
+  # Enable email notifications on completion/failure
+  email_notifications: false
+  
+  # Email addresses to send notifications to
+  email_recipients: []
+  
+  # Slack webhook URL for notifications
+  slack_webhook: ""
+
+
+# ============================================================================
+# Configuration Scenarios
+# ============================================================================
+# 
+# QUICK DEPLOYMENT (Skip download, processing, training):
+#   phase_control:
+#     skip_data_download: true
+#     skip_data_processing: true
+#     skip_rl_training: true
+#
+# TESTING ONLY (Skip deployment and APK):
+#   phase_control:
+#     skip_deployment: true
+#     skip_apk_build: true
+#
+# FULL PIPELINE (Download everything):
+#   Use all default values with skip flags set to false
+#
+# DEVELOPMENT ENVIRONMENT:
+#   azure:
+#     resource_group: "rg-wealtharena-dev"
+#     suffix: "dev"
+#   apk_build:
+#     build_profile: "development"
+#
+# PRODUCTION ENVIRONMENT:
+#   azure:
+#     resource_group: "rg-wealtharena-prod"
+#     suffix: "prod"
+#   apk_build:
+#     build_profile: "production"
+#     auto_submit: true
+#
+# MVP MODE (Fast deployment, low cost):
+#   mvp_mode:
+#     enabled: true
+#     asx_stock_limit: 100
+#     asx_training_limit: 50
+#   rl_training:
+#     max_iterations: 500
+#     target_reward: 200.0
+#     quick_training_mode: true
+#   azure:
+#     auto_create_resources: true
+#     use_random_suffix: true
+#   cost_optimization:
+#     enabled: true
+#     use_basic_tier: true
+#     skip_cosmos_db: true
+#     skip_databricks: true
+#
+

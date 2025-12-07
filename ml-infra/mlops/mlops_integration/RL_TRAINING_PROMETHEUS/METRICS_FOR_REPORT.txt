@@ -1,0 +1,113 @@
+PROMETHEUS METRICS FOR ALL RL TRAINING MODELS
+==============================================
+
+SUMMARY FOR REPORT
+------------------
+
+The WealthArena RL training system exposes comprehensive Prometheus metrics 
+for monitoring all training models:
+
+ALGORITHMS TRACKED (4):
+- PPO (Proximal Policy Optimization)
+- SAC (Soft Actor-Critic)
+- DQN (Deep Q-Network)
+- IMPALA
+
+SPECIALIZED AGENTS TRACKED (7):
+- ASX Stocks Agent
+- ETF Trading Agent
+- REITs Agent
+- Currency Pairs Agent
+- US Stocks Agent
+- Commodities Agent
+- Cryptocurrency Agent
+
+MULTI-AGENT SYSTEM (5 agents):
+- Agent 0 (Conservative)
+- Agent 1 (Aggressive)
+- Agent 2 (Balanced)
+- Agent 3
+- Agent 4
+
+TOTAL METRICS: 21 distinct metric types
+
+METRIC CATEGORIES
+-----------------
+
+1. Training Lifecycle (5 metrics):
+   - rl_training_runs_total (by algorithm, status)
+   - rl_training_active (by algorithm)
+   - rl_training_duration_seconds (by algorithm)
+   - rl_training_iterations_total (by algorithm)
+   - rl_training_current_iteration (by algorithm, run_id)
+
+2. Episode Metrics (5 metrics):
+   - rl_training_episodes_total (by algorithm, agent_id)
+   - rl_training_episode_reward (by algorithm, agent_id)
+   - rl_training_episode_reward_mean (by algorithm, run_id)
+   - rl_training_episode_length (by algorithm, agent_id)
+   - rl_training_episode_length_mean (by algorithm, run_id)
+
+3. Performance Metrics (4 metrics):
+   - rl_training_sharpe_ratio (by algorithm, agent_id)
+   - rl_training_max_drawdown (by algorithm, agent_id)
+   - rl_training_win_rate (by algorithm, agent_id)
+   - rl_training_total_return (by algorithm, agent_id)
+
+4. Loss Metrics (3 metrics):
+   - rl_training_policy_loss (by algorithm)
+   - rl_training_value_loss (by algorithm)
+   - rl_training_entropy (by algorithm)
+
+5. Data & Environment (2 metrics):
+   - rl_training_data_load_time_seconds
+   - rl_training_environment_steps_total (by algorithm)
+
+6. Error Tracking (1 metric):
+   - rl_training_errors_total (by error_type)
+
+7. Time Metrics (1 metric):
+   - rl_training_start_timestamp (by algorithm, run_id)
+
+METRICS ENDPOINT
+---------------
+- URL: http://localhost:8011/metrics
+- Format: Prometheus text format
+- Scrape Interval: 10 seconds
+- Prometheus Job: wealtharena_rl_training
+
+KEY QUERIES FOR REPORT
+----------------------
+
+Total Training Runs:
+  sum(rl_training_runs_total{})
+
+Active Training:
+  sum(rl_training_active{})
+
+Training by Algorithm:
+  sum by (algorithm) (rl_training_runs_total{})
+
+Performance by Agent:
+  rl_training_sharpe_ratio{}
+  rl_training_win_rate{}
+  rl_training_total_return{}
+
+Training Progress:
+  rl_training_current_iteration{}
+  rl_training_episode_reward_mean{}
+
+ERROR METRICS
+-------------
+- Total errors: sum(rl_training_errors_total{})
+- Errors by type: sum by (error_type) (rl_training_errors_total{})
+
+INTEGRATION STATUS
+------------------
+✅ All 4 RL algorithms instrumented
+✅ All 7 specialized agents tracked
+✅ All 5 multi-agent agents tracked
+✅ Real-time monitoring via Prometheus
+✅ Grafana dashboards available
+✅ 21 metric types covering all aspects of training
+

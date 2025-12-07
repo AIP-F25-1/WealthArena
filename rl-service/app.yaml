@@ -1,0 +1,57 @@
+runtime: python311
+service: rl-service
+env: flex
+
+resources:
+  cpu: 2
+  memory_gb: 4
+  disk_size_gb: 10
+
+automatic_scaling:
+  min_num_instances: 0
+  max_num_instances: 2
+  cool_down_period_sec: 180
+  cpu_utilization:
+    target_utilization: 0.70
+
+env_variables:
+  DB_TYPE: "postgres"
+  DB_HOST: "/cloudsql/wealtharena-prod:us-central1:wealtharena-db"
+  DB_NAME: "wealtharena_db"
+  DB_USER: "wealtharena_admin"
+  DB_PORT: "5432"
+  MODEL_PATH: "/app/models/latest"
+  MODEL_MODE: "production"
+  PORT: "8080"
+  LOG_LEVEL: "INFO"
+  GCS_BUCKET: "wealtharena-models"
+  GCS_MODEL_PREFIX: "latest/"
+
+secrets:
+  - variable: DB_PASSWORD
+    secret: db-password
+    version: latest
+  - variable: AZURE_STORAGE_CONNECTION_STRING
+    secret: storage-connection-string
+    version: latest
+
+beta_settings:
+  cloud_sql_instances: "wealtharena-prod:us-central1:wealtharena-db"
+
+entrypoint: gunicorn --bind :8080 --workers 2 --timeout 120 --chdir api api.inference_server:app
+
+liveness_check:
+  path: "/health"
+  check_interval_sec: 30
+  timeout_sec: 10
+  failure_threshold: 3
+  success_threshold: 1
+
+readiness_check:
+  path: "/health"
+  check_interval_sec: 10
+  timeout_sec: 10
+  failure_threshold: 3
+  success_threshold: 1
+  app_start_timeout_sec: 600
+

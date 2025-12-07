@@ -1,0 +1,555 @@
+{
+  "phase1": {
+    "name": "Data Infrastructure",
+    "description": "Collect and store all historical data across asset classes",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "1.1",
+        "name": "Setup Environment",
+        "type": "script",
+        "script": "scripts/setup_environment.py",
+        "args": [
+          "--environment-file",
+          "environment.yml"
+        ],
+        "manual": false,
+        "commit_message": "Setup conda environment and dependencies"
+      },
+      {
+        "id": "1.2",
+        "name": "Check Dependencies",
+        "type": "script",
+        "script": "scripts/check_dependencies.py",
+        "args": [],
+        "manual": false,
+        "commit_message": "Verify all dependencies installed"
+      },
+      {
+        "id": "1.3",
+        "name": "Configure API Keys",
+        "type": "interactive",
+        "prompt_type": "api_keys",
+        "required_keys": [],
+        "optional_keys": [
+          "ALPHA_VANTAGE_API_KEY",
+          "FRED_API_KEY",
+          "CCXT_EXCHANGE_API_KEY",
+          "CCXT_EXCHANGE_SECRET",
+          "ALPACA_API_KEY",
+          "ALPACA_SECRET_KEY",
+          "WANDB_API_KEY",
+          "LANGSMITH_API_KEY",
+          "REDDIT_CLIENT_ID",
+          "REDDIT_CLIENT_SECRET",
+          "REDDIT_USER_AGENT"
+        ],
+        "manual": true,
+        "commit_message": "Configure API keys and secrets (all optional - can be added later)"
+      },
+      {
+        "id": "1.4",
+        "name": "Generate Stock Catalogs",
+        "type": "script",
+        "script": "scripts/generate_stock_catalog.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Generate sector stock catalogs"
+      },
+      {
+        "id": "1.5",
+        "name": "Collect Stock Data",
+        "type": "script",
+        "script": "scripts/collect_stocks.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml",
+          "--no-allow-fallback"
+        ],
+        "manual": false,
+        "commit_message": "Collect historical stock data"
+      },
+      {
+        "id": "1.6",
+        "name": "Collect Forex Data",
+        "type": "script",
+        "script": "scripts/collect_forex.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect forex pair data"
+      },
+      {
+        "id": "1.7",
+        "name": "Collect Crypto Data",
+        "type": "script",
+        "script": "scripts/collect_crypto.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect cryptocurrency data"
+      },
+      {
+        "id": "1.8",
+        "name": "Collect ETF Data",
+        "type": "script",
+        "script": "scripts/collect_etfs.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect ETF market data"
+      },
+      {
+        "id": "1.9",
+        "name": "Collect Commodity Data",
+        "type": "script",
+        "script": "scripts/collect_commodities.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect commodity futures data"
+      },
+      {
+        "id": "1.10",
+        "name": "Collect Options Data",
+        "type": "script",
+        "script": "scripts/collect_options.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "enabled": false,
+        "allow_failure": true,
+        "commit_message": "Collect options chain data (optional - pipeline continues if unavailable)"
+      },
+      {
+        "id": "1.11",
+        "name": "Collect News Data",
+        "type": "script",
+        "script": "scripts/collect_news.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect financial news data"
+      },
+      {
+        "id": "1.12",
+        "name": "Collect Social Media Data",
+        "type": "script",
+        "script": "scripts/collect_social.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect social media sentiment data"
+      },
+      {
+        "id": "1.13",
+        "name": "Collect Macro Data",
+        "type": "script",
+        "script": "scripts/collect_macro.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Collect macroeconomic indicators"
+      },
+      {
+        "id": "1.14",
+        "name": "Validate Data Quality",
+        "type": "script",
+        "script": "scripts/validate_data.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Validate collected data quality"
+      }
+    ]
+  },
+  "phase2": {
+    "name": "Feature Engineering",
+    "description": "Process data through Bronze->Silver->Gold pipeline",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "2.1",
+        "name": "Bronze to Silver Processing",
+        "type": "script",
+        "script": "scripts/process_bronze_to_silver.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Process bronze to silver data layer"
+      },
+      {
+        "id": "2.2",
+        "name": "Silver to Gold Processing",
+        "type": "script",
+        "script": "scripts/process_silver_to_gold.py",
+        "args": [
+          "--config",
+          "config/data_config.yaml",
+          "--validate"
+        ],
+        "manual": false,
+        "commit_message": "Process silver to gold feature layer"
+      },
+      {
+        "id": "2.3",
+        "name": "Run Data Exploration Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/01_data_exploration.ipynb",
+        "manual": true,
+        "commit_message": "Complete data exploration analysis"
+      },
+      {
+        "id": "2.4",
+        "name": "Run Feature Analysis Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/02_feature_analysis.ipynb",
+        "manual": true,
+        "commit_message": "Complete feature analysis"
+      }
+    ]
+  },
+  "phase3": {
+    "name": "PPO Agents Training",
+    "description": "Train individual PPO agents for each asset class",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "3.1",
+        "name": "CQL Pretraining",
+        "type": "script",
+        "script": "scripts/pretrain_cql.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Complete CQL offline pretraining"
+      },
+      {
+        "id": "3.2",
+        "name": "Train PPO Agents",
+        "type": "script",
+        "script": "scripts/train_ppo_agents.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml",
+          "--distributed"
+        ],
+        "manual": false,
+        "commit_message": "Train PPO agents for all asset classes"
+      },
+      {
+        "id": "3.3",
+        "name": "Evaluate PPO Agents",
+        "type": "script",
+        "script": "scripts/evaluate_agents.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml",
+          "--agents",
+          "all"
+        ],
+        "manual": false,
+        "commit_message": "Evaluate trained PPO agents"
+      },
+      {
+        "id": "3.4",
+        "name": "Run Agent Training Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/05_agent_training.ipynb",
+        "manual": true,
+        "commit_message": "Analyze agent training results"
+      }
+    ]
+  },
+  "phase4": {
+    "name": "SAC Meta-Controller",
+    "description": "Train SAC meta-controller for portfolio allocation",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "4.1",
+        "name": "Run Regime Detection Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/04_regime_detection.ipynb",
+        "manual": true,
+        "commit_message": "Implement regime detection analysis"
+      },
+      {
+        "id": "4.2",
+        "name": "Train SAC Controller",
+        "type": "script",
+        "script": "scripts/train_sac_controller.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Train SAC meta-controller"
+      },
+      {
+        "id": "4.3",
+        "name": "Run Portfolio Optimization Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/07_portfolio_optimization.ipynb",
+        "manual": true,
+        "commit_message": "Analyze portfolio optimization"
+      }
+    ]
+  },
+  "phase5": {
+    "name": "Strategy Library & Orchestration",
+    "description": "Setup multi-agent orchestration with LangGraph",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "5.1",
+        "name": "Configure Orchestration",
+        "type": "manual",
+        "description": "Review and configure LangGraph orchestration settings in src/orchestration/",
+        "manual": true,
+        "commit_message": "Configure multi-agent orchestration"
+      }
+    ]
+  },
+  "phase6": {
+    "name": "Backtesting & Evaluation",
+    "description": "Run comprehensive backtesting suite",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "6.1",
+        "name": "Run Comprehensive Backtest",
+        "type": "script",
+        "script": "scripts/run_comprehensive_backtest.py",
+        "args": [
+          "--config",
+          "config/backtest_config.yaml",
+          "--backtest-type",
+          "all"
+        ],
+        "manual": false,
+        "commit_message": "Complete comprehensive backtesting"
+      },
+      {
+        "id": "6.2",
+        "name": "Run Walk-Forward Optimization",
+        "type": "script",
+        "script": "scripts/run_walk_forward.py",
+        "args": [
+          "--config",
+          "config/backtest_config.yaml"
+        ],
+        "manual": false,
+        "commit_message": "Complete walk-forward optimization"
+      },
+      {
+        "id": "6.3",
+        "name": "Run Monte Carlo Simulation",
+        "type": "script",
+        "script": "scripts/run_monte_carlo.py",
+        "args": [
+          "--config",
+          "config/backtest_config.yaml",
+          "--num-simulations",
+          "10000"
+        ],
+        "manual": false,
+        "commit_message": "Complete Monte Carlo stress testing"
+      },
+      {
+        "id": "6.4",
+        "name": "Run Backtest Analysis Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/06_backtest_analysis.ipynb",
+        "manual": true,
+        "commit_message": "Analyze backtest results"
+      },
+      {
+        "id": "6.5",
+        "name": "Run Risk Analysis Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/08_risk_analysis.ipynb",
+        "manual": true,
+        "commit_message": "Complete risk analysis"
+      }
+    ]
+  },
+  "phase7": {
+    "name": "Execution & Market Simulation",
+    "description": "Setup paper trading infrastructure",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "7.1",
+        "name": "Configure Paper Trading",
+        "type": "manual",
+        "description": "Verify Alpaca/CCXT credentials and configure paper trading settings",
+        "manual": true,
+        "commit_message": "Configure paper trading setup"
+      }
+    ]
+  },
+  "phase8": {
+    "name": "Training & Experimentation (Ray)",
+    "description": "Distributed training with Ray",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "8.1",
+        "name": "Train All Agents (Distributed)",
+        "type": "script",
+        "script": "scripts/train_all_agents.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml",
+          "--stage",
+          "all",
+          "--distributed",
+          "--num-workers",
+          "4"
+        ],
+        "manual": false,
+        "commit_message": "Complete distributed agent training"
+      }
+    ]
+  },
+  "phase9": {
+    "name": "Model Serving & Deployment",
+    "description": "Package and serve models with BentoML",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "9.1",
+        "name": "Serve Models",
+        "type": "script",
+        "script": "scripts/serve_models.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml",
+          "--models-dir",
+          "./models"
+        ],
+        "manual": false,
+        "commit_message": "Package models with BentoML"
+      },
+      {
+        "id": "9.2",
+        "name": "Test Paper Trading",
+        "type": "script",
+        "script": "scripts/run_paper_trading.py",
+        "args": [
+          "--config",
+          "config/agent_config.yaml",
+          "--platform",
+          "alpaca",
+          "--dry-run"
+        ],
+        "manual": false,
+        "commit_message": "Test paper trading integration"
+      }
+    ]
+  },
+  "phase10": {
+    "name": "Final Integration & Testing",
+    "description": "Complete testing, documentation, and paper",
+    "enabled": true,
+    "steps": [
+      {
+        "id": "10.1",
+        "name": "Run Test Suite",
+        "type": "script",
+        "script": "pytest",
+        "args": [
+          "--cov=src",
+          "--cov-report=json",
+          "--cov-report=html",
+          "--json-report",
+          "--json-report-file=test_report.json"
+        ],
+        "manual": false,
+        "commit_message": "Complete test suite execution"
+      },
+      {
+        "id": "10.2",
+        "name": "Run SonarQube Scan",
+        "type": "script",
+        "script": "sonar-scanner",
+        "args": [],
+        "manual": false,
+        "commit_message": "Complete SonarQube code analysis"
+      },
+      {
+        "id": "10.3",
+        "name": "Generate Reports",
+        "type": "script",
+        "script": "scripts/generate_reports.py",
+        "args": [
+          "--equity-curve",
+          "results/backtests/equity.parquet",
+          "--weights",
+          "results/backtests/weights.parquet",
+          "--output-dir",
+          "results/reports"
+        ],
+        "manual": false,
+        "commit_message": "Generate performance reports"
+      },
+      {
+        "id": "10.4",
+        "name": "Run Paper Results Notebook",
+        "type": "notebook",
+        "notebook": "docs/notebooks/09_paper_results.ipynb",
+        "manual": true,
+        "commit_message": "Generate paper figures and tables"
+      },
+      {
+        "id": "10.5",
+        "name": "Build Documentation",
+        "type": "script",
+        "script": "sphinx-build",
+        "args": [
+          "-b",
+          "html",
+          "docs/source",
+          "docs/build"
+        ],
+        "manual": false,
+        "commit_message": "Build Sphinx documentation"
+      },
+      {
+        "id": "10.6",
+        "name": "Compile LaTeX Paper",
+        "type": "manual",
+        "description": "Compile LaTeX paper using paper/compile.sh or MiKTeX",
+        "manual": true,
+        "commit_message": "Compile academic paper"
+      }
+    ]
+  }
+}
+

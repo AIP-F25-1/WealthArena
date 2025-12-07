@@ -1,0 +1,29 @@
+\section{Methodology}
+
+\subsection{System Architecture}
+Our system adopts a hierarchical multi-agent architecture. Individual PPO agents specialize by asset class—equities, ETFs, commodities, options, forex, and cryptocurrencies—operating on feature-rich observations composed of technical, sentiment, macro, and position context signals. A SAC meta-controller ingests aggregated agent signals, macro indicators, covariance summaries, and regime probabilities to produce portfolio allocations subject to leverage and risk constraints. Data traverses a Bronze (raw) \textrightarrow{} Silver (cleaned) \textrightarrow{} Gold (feature-engineered) pipeline before powering agent training and evaluation stages.
+
+\subsection{Data Infrastructure}
+We ingest ten years of historical data (October 2015--October 2025) covering 350 equities across seven sectors, 50 ETFs, 20 forex pairs, 50 cryptocurrencies, and 15 commodities. Additional sources include options chains, financial news, social media posts, and macroeconomic indicators. Data collection leverages Yahoo Finance, CCXT, Alpha Vantage, FRED, Reddit, and Twitter APIs with provider-specific rate limiting and retry logic. Raw payloads populate the Bronze layer, while Silver standardizes schema, timestamps, and quality flags. Gold merges technical indicators, sentiment scores, macro features, and correlation matrices.
+
+\subsection{Feature Engineering}
+Technical indicators include SMA/EMA (5--200 windows), MACD (12, 26, 9), RSI (14), Bollinger Bands, ATR, OBV, VWAP, historical volatility, and asset-specific metrics such as commodity term structure, ETF premium/discount, and options Greeks. Sentiment features apply FinBERT to news and BERTweet to social streams, aggregating net sentiment, message volume, momentum, and attention metrics over 15-minute to weekly windows. Macro features incorporate FRED series (e.g., yield curve slope, inflation, unemployment) with MoM/YoY transformations. Cross-asset correlation features rely on Ledoit-Wolf shrinkage and PCA for dimensionality reduction.
+
+\subsection{Individual PPO Agents}
+Each PPO agent observes concatenated feature vectors, including historical prices, indicators, sentiment scores, positions, and context-specific metadata (e.g., currency leverage). Actions represent continuous target positions in $[-1, 1]$ or discrete signals for options trading. Rewards combine risk-adjusted returns with penalties for drawdown, turnover, and transaction costs, promoting stable behavior. Hyperparameters follow established defaults: $\gamma=0.99$, $\lambda=0.95$, clip range $0.2$, learning rate $3\cdot10^{-4}$, batch size 2048, mini-batch size 64, 10 epochs, entropy coefficient 0.01. Agents operate in vectorized environments with observation normalization and periodic evaluation checkpoints.
+
+\subsection{SAC Meta-Controller}
+The SAC controller consumes aggregated PPO outputs (expected return, confidence, suggested weights), macro signals, portfolio state, covariance summaries, and regime probabilities. Actions are transformed to valid portfolio weights via a constrained mapping enforcing leverage and sector limits. Rewards incorporate realized returns, CVaR penalties, drawdown penalties, and turnover costs. Separate actor/critic networks (hidden layers $[256,256,128]$ and $[512,512,256]$) train off-policy with a buffer size of one million samples, target entropy auto-tuning, and soft updates with $\tau=0.005$.
+
+\subsection{Offline Pretraining with CQL}
+To mitigate cold-start risk, we employ Conservative Q-Learning using historical backtest datasets and behavioral policies (mean-variance, risk parity). Datasets incorporate stress periods (2008 crisis, COVID crash) and include transaction costs. The pretraining phase constrains policies with max drawdown, position, and sector limits. Resulting Q-functions initialize PPO and SAC components before online fine-tuning, improving stability and sample efficiency.
+
+\subsection{Regime Detection}
+A Hidden Markov Model with three states (bull, bear, sideways) estimates market regimes using returns, volatility, and VIX-derived features. Gaussian Mixture Models provide complementary unsupervised clustering. Regime probabilities feed the meta-controller, enabling regime-weighted parameter blending and risk-aware allocation adjustments with smoothing to prevent whipsaw.
+
+\subsection{Portfolio Optimization}
+We compute covariance matrices using Ledoit-Wolf shrinkage and generate Black-Litterman equilibrium returns informed by agent views and macro signals. Risk-parity and hierarchical risk parity allocations serve as baselines and regularization anchors for the SAC controller. The optimizer enforces leverage, concentration, and sector constraints while supporting multi-objective blends (Sharpe maximization, volatility minimization).
+
+\subsection{Transaction Cost Modeling}
+Transaction costs combine bid-ask spreads (Roll and Corwin-Schultz estimators), commissions, volatility-adjusted slippage, and market impact (Kyle's lambda, square-root law). Costs apply consistently across training, backtesting, and paper trading to ensure realistic performance measurement.
+

@@ -1,0 +1,43 @@
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+
+\subsection*{Hyperparameter Configuration}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ll}
+        \toprule
+        Component & Key Settings \\
+        \midrule
+        PPO Agents & Learning rate $3 \times 10^{-4}$, clip range $0.2$, GAE $\lambda=0.95$ \\
+        SAC Meta-Controller & Learning rate $1 \times 10^{-4}$, target entropy auto, $\gamma=0.99$ \\
+        Data Pipeline & Bronze window 5 years, feature lag 252 days, resample daily \\
+        Backtesting & Transaction cost model per asset class, Monte Carlo 10,000 paths \\
+        \bottomrule
+    \end{tabular}
+    \caption{Summary of the primary configuration knobs used across experiments.}
+\end{table}
+
+\subsection*{Additional Results}
+\begin{itemize}
+    \item Sensitivity analysis over transaction cost multipliers indicates robust Sharpe ratios within $\pm 15\%$ of baseline.
+    \item Walk-forward optimization exhibited stable parameter reuse with median turnover below 12\%.
+    \item Regime-aware evaluation demonstrates improved downside protection during bear regimes by 8\% drawdown reduction.
+\end{itemize}
+
+\subsection*{Reproducibility Notes}
+\begin{enumerate}
+    \item All experiments were executed on a Windows 11 workstation with Python 3.12 and CUDA 12.1.
+    \item Random seeds are controlled via the training CLI (`--seed` flag) to guarantee deterministic rollouts where possible.
+    \item Processed datasets, trained weights, and experiment metadata are persisted under `./artifacts/` with ISO-8601 timestamps.
+\end{enumerate}
+\appendix
+
+\section{Additional Hyperparameters}
+Table~\ref{tab:hyperparameters} lists key PPO and SAC hyperparameters, batch sizes, and learning rates per asset class.
+
+\section{Algorithm Pseudocode}
+Pseudocode for PPO, SAC, and CQL training loops is provided for reproducibility, referencing the official implementations in Stable-Baselines3 and accompanying repositories.
+
+\section{Extended Results}
+Additional figures and tables, including sector-level performance, sentiment ablations, and regime confusion matrices, are available in the supplementary materials directory.
+

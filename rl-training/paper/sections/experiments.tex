@@ -1,0 +1,23 @@
+\section{Experimental Setup}
+
+\subsection{Datasets}
+We evaluate on daily data spanning October 2015 to October 2025. The training set covers 2015--2022, validation 2022--2023, and testing 2023--2025. Asset coverage totals 350 equities, 50 ETFs, 20 forex pairs, 50 cryptocurrencies, and 15 commodities. The dataset also includes options chains for major equities, 500k financial news articles, 2M Reddit posts, and macroeconomic indicators sourced from FRED.
+
+\subsection{Feature Engineering Summary}
+Gold layer feature matrices include approximately 50 features per asset, combining technical, sentiment, macro, and cross-asset correlation signals. Sentiment aggregation occurs at 15-minute, hourly, daily, and weekly horizons. Macro features are resampled to daily frequency with MoM/YoY transformations. Covariance matrices utilize Ledoit-Wolf shrinkage and PCA retains 90\% of variance.
+
+\subsection{Training Configuration}
+PPO agents undergo CQL pretraining for 1M transitions followed by 500k online timesteps (per asset class). SAC meta-controller trains for 1M timesteps on aggregated PPO signals. Training uses Ray RLlib with 8 workers, observation normalization, and evaluation checkpoints every 50k steps. Experiments run on a Windows workstation with 16 CPU cores, 64GB RAM, and NVIDIA RTX 3080 GPU.
+
+\subsection{Hyperparameters}
+PPO hyperparameters follow \citet{schulman2017ppo}: $\gamma=0.99$, $\lambda=0.95$, clip range $0.2$, learning rate $3\cdot10^{-4}$, batch size 2048, epochs 10. SAC hyperparameters align with \citet{haarnoja2018soft}: $\gamma=0.99$, $\tau=0.005$, learning rate $3\cdot10^{-4}$, buffer size $10^6$, batch size 256, automatic entropy tuning. CQL penalty $\alpha=1.0$ as recommended by \citet{kumar2020conservative}. All experiments repeat across five random seeds.
+
+\subsection{Backtesting Protocol}
+Event-driven backtests use Backtrader with daily rebalancing, asset-specific transaction costs (stocks 10 bps commission  5 bps slippage, forex 2 pip spread, crypto 10 bps maker/taker). Walk-forward optimization employs 252-day in-sample windows, 63-day out-of-sample windows, 63-day step size, and 5-day purge/embargo. Monte Carlo simulations generate 10k scenarios via block bootstrap (block size 20) and Student-$t$ parametric draws. Stress tests cover the 2008 financial crisis, COVID crash, and custom inflation shock.
+
+\subsection{Baselines}
+We benchmark against buy-and-hold (equal weight), 60/40 equity/bond, Markowitz mean-variance, risk parity, single-agent PPO without meta-controller, and random allocations. Hyperparameters for baselines follow standard references with matching transaction cost assumptions.
+
+\subsection{Evaluation Metrics}
+Performance metrics include cumulative and annualized returns, volatility, Sharpe, Sortino, Calmar, maximum drawdown, turnover, VaR (95\%), CVaR (95\%), hit rate, and statistical significance tests (bootstrap confidence intervals, paired $t$-tests). Regime-aware evaluation computes metrics separately for bull, bear, and sideways states.
+

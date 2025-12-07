@@ -1,0 +1,68 @@
+Extracted Segments (Verbatim)
+Section C. Agentic Multi-Agent Trading & Strategy Library
+•	Library of base strategies: momentum, mean-reversion, statistical arbitrage, pairs trading, sector rotation, carry strategies.
+•	Multi-instrument agents: stocks, ETFs, futures, options (vanilla & basic Greeks), crypto, FX.
+•	Strategy composition: meta-controller that composes agents by regime detection.
+•	Reinforcement learning agents: PPO, SAC, A2C, or off-policy (DQN variants for discrete actions).
+•	Hierarchical RL: high-level allocator + low-level execution policies.
+•	Offline RL pretraining on historical buffers; online fine-tuning in paper-trading.
+•	Strategy ensembling & model distillation for lightweight live execution.
+________________________________________
+Section L. Experimentation & Training Infrastructure (Agent-Focused Items Only)
+•	Offline Pretraining of Agents
+o Pre-train RL trading policies on historical datasets (Yahoo Finance, Alpha Vantage, Quandl, WRDS) before live deployment.
+o Use offline RL techniques (conservative Q-learning, CQL; batch-constrained deep Q-learning, BCQ) to reduce the risk of catastrophic exploration in live markets.
+o Allow simulation of different market regimes (e.g., 2008 crash, COVID shock) to stress-test agent robustness.
+•	Reward Shaping & Multi-Objective Optimization
+o Extend reward functions beyond raw returns: penalize drawdowns, volatility, overexposure to one asset class, or slippage.
+o Multi-objective reward: balance return vs. risk, liquidity, ESG goals, Sharpe ratio, max drawdown, etc.
+o Enable customizable user-driven reward shaping: e.g., “maximize returns but cap daily loss at 1%.”
+•	Covariance-Aware Portfolio Risk Management
+o Compute covariance and correlation matrices across assets dynamically.
+o Use these to construct hedges (long/short pairs, factor hedging, index vs. stock hedges).
+o Implement risk-parity portfolio balancing and minimum variance optimization (Markowitz, Black-Litterman extensions).
+o Allow agents to automatically adjust exposure in correlated instruments (e.g., hedging oil ETFs with airline shorts).
+________________________________________
+Section 7. Technical Architecture Recommendations & Tooling (Agentic-Oriented Parts)
+•	Orchestration & Agent Coordination
+• LangGraph or LangChain Core — multi-agent orchestration and workflow composition (discovery → signal fusion → planner → execution).
+• LangSmith — LLM prompt/log tracking and evaluation of reasoning outputs.
+•	Models & ML Infrastructure
+• PyTorch (primary) with optional JAX for specialized model speedups.
+• RL libraries: Stable Baselines3, Ray-RL or RLlib, CleanRL, or custom PPO/SAC implementations.
+• Time-series & forecasting: Temporal Fusion Transformer, N-BEATS, WaveNet/TCN.
+• Fine-tuning & adapters: Axolotl or PEFT for adapter-based tuning; use for strategy LLM fine-tuning.
+• Model serving: BentoML, TorchServe or Triton for performant endpoints.
+• Distributed compute: Ray for parallel backtests and distributed training.
+•	Backtesting & Simulation Tools
+• Vectorized backtest engines (custom or libraries like Backtrader, zipline-style patterns).
+• Monte Carlo & scenario tooling (NumPy, Pandas, custom Cython for speed).
+• Orderbook / market impact simulators (custom modules or lightweight open-source libs).
+________________________________________
+Section F. Backtest, Evaluation & What-If Simulation (Agent Evaluation-Relevant)
+•	Vectorized backtester with walk-forward testing.
+•	Bootstrapped / Monte Carlo scenario testing.
+•	Event-based backtests (earnings, Fed events).
+•	Regime-aware evaluation (separate bull/bear metrics).
+•	Performance attribution: factor decomposition, Brinson allocation, attribution to signals.
+________________________________________
+Section G. News, NLP & Signal Fusion (Agent Observation Inputs)
+•	LLM pipeline for event extraction & reasoning (summaries of earnings calls, “tone” analyses).
+•	Named entity linking across filings and news.
+•	Cross-modal fusion: numeric + text + event embeddings into agent observation vectors.
+________________________________________
+Section E. Portfolio Construction & Risk Management (Agent Control Context)
+•	Hedging module: delta-hedging for options, synthetic hedges using ETFs/futures.
+•	Scenario & stress testing: user-defined shocks (rate hikes, regime shift, sudden drawdown).
+•	Risk metrics: VaR, CVaR, drawdown, max drawdown, Sharpe, Sortino, turnover, exposures.
+•	Rebalancing policies & automated rebalancing engine.
+________________________________________
+Section D. Execution, Market Microstructure & Simulation (Agent Execution Context)
+•	Order models: market, limit, IOC, FOK; basic orderbook simulation.
+•	Transaction costs model: spreads, commissions, slippage, market impact (Kyle model).
+•	Paper-trading & live-sandbox connectors (Alpaca, Interactive Brokers sandbox, CCXT for crypto).
+•	Latency and fill simulation: configurable delay distributions and slippage.
+________________________________________
+Section 1. Objective and End-Goal (Agentic System Description Lines)
+•	Under the hood: multi-agent RL, signal fusion, robust backtesting, and production-grade logging, experiment tracking and model serving.
+________________________________________

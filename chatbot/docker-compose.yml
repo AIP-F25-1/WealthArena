@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  wealtharena-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wealtharena-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+      - APP_HOST=0.0.0.0
+    volumes:
+      # Persist all data in single directory mount
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - wealtharena-network
+
+networks:
+  wealtharena-network:
+    driver: bridge
+

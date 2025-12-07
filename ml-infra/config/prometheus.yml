@@ -1,0 +1,139 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # MLOps Services
+  - job_name: 'wealtharena_ingest'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+        labels: 
+          component: 'ingest'
+          service: 'yahoo_ingest'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  - job_name: 'wealtharena_tune'
+    static_configs:
+      - targets: ['host.docker.internal:8001']
+        labels: 
+          component: 'tune'
+          service: 'optuna_tuning'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  - job_name: 'wealtharena_retrain'
+    static_configs:
+      - targets: ['host.docker.internal:8002']
+        labels: 
+          component: 'retrain'
+          service: 'auto_retrain'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Frontend Services
+  - job_name: 'wealtharena_ui'
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+        labels: 
+          component: 'frontend'
+          service: 'react_app'
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # A/B Testing Service
+  - job_name: 'wealtharena_ab_testing'
+    static_configs:
+      - targets: ['host.docker.internal:8003']
+        labels: 
+          component: 'ab_testing'
+          service: 'feature_flags'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # News Ingestion Service (ASX News from Alpha Vantage)
+  - job_name: 'wealtharena_news_ingest'
+    static_configs:
+      - targets: ['host.docker.internal:8004']
+        labels: 
+          component: 'news_ingest'
+          service: 'asx_news'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Chatbot Service
+  - job_name: 'wealtharena_chatbot'
+    static_configs:
+      - targets: ['host.docker.internal:8005']
+        labels: 
+          component: 'chatbot'
+          service: 'ai_chatbot'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Data Pipeline Service
+  - job_name: 'wealtharena_data_pipeline'
+    static_configs:
+      - targets: ['host.docker.internal:8006']
+        labels: 
+          component: 'data'
+          service: 'data_pipeline'
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # Database Monitoring
+  - job_name: 'wealtharena_database'
+    static_configs:
+      - targets: ['host.docker.internal:5432']
+        labels: 
+          component: 'database'
+          service: 'postgresql'
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # CI/CD Pipeline
+  - job_name: 'wealtharena_cicd'
+    static_configs:
+      - targets: ['host.docker.internal:8010']
+        labels: 
+          component: 'cicd'
+          service: 'deployment_pipeline'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Ray Distributed Training
+  - job_name: 'wealtharena_ray'
+    static_configs:
+      - targets: ['host.docker.internal:8011']
+        labels: 
+          component: 'ray'
+          service: 'distributed_training'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Automated Deployment
+  - job_name: 'wealtharena_auto_deploy'
+    static_configs:
+      - targets: ['host.docker.internal:8012']
+        labels: 
+          component: 'deployment'
+          service: 'auto_deploy'
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          component: 'system'
+    scrape_interval: 15s
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'monitoring'

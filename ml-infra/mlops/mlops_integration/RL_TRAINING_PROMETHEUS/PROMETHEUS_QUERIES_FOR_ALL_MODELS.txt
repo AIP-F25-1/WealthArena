@@ -1,0 +1,212 @@
+PROMETHEUS QUERIES FOR ALL RL TRAINING MODELS
+=============================================
+
+METRICS SERVER IS NOW RUNNING!
+Check: http://localhost:8011/metrics
+
+OPEN PROMETHEUS: http://127.0.0.1:9090
+
+═══════════════════════════════════════════════════════════════
+QUERIES FOR ALL MODELS - COPY AND PASTE INTO PROMETHEUS
+═══════════════════════════════════════════════════════════════
+
+1. TOTAL TRAINING RUNS (All Algorithms)
+   sum(rl_training_runs_total{})
+
+2. TRAINING RUNS BY ALGORITHM
+   sum by (algorithm) (rl_training_runs_total{})
+
+3. TRAINING RUNS BY STATUS
+   sum by (status) (rl_training_runs_total{})
+
+4. ACTIVE TRAINING SESSIONS
+   sum(rl_training_active{})
+
+5. CURRENT ITERATION (All Models)
+   rl_training_current_iteration{}
+
+6. EPISODE REWARD MEAN (All Models)
+   rl_training_episode_reward_mean{}
+
+7. SHARPE RATIO (All Agents)
+   rl_training_sharpe_ratio{}
+
+8. WIN RATE (All Agents)
+   rl_training_win_rate{}
+
+9. TOTAL RETURN (All Agents)
+   rl_training_total_return{}
+
+10. MAX DRAWDOWN (All Agents)
+    rl_training_max_drawdown{}
+
+11. TOTAL EPISODES (All Models)
+    sum(rl_training_episodes_total{})
+
+12. EPISODES BY ALGORITHM
+    sum by (algorithm) (rl_training_episodes_total{})
+
+13. EPISODES BY AGENT
+    sum by (agent_id) (rl_training_episodes_total{})
+
+14. TOTAL ITERATIONS
+    sum(rl_training_iterations_total{})
+
+15. ITERATIONS BY ALGORITHM
+    sum by (algorithm) (rl_training_iterations_total{})
+
+═══════════════════════════════════════════════════════════════
+QUERIES FOR SPECIFIC ALGORITHMS
+═══════════════════════════════════════════════════════════════
+
+PPO ALGORITHM:
+  rl_training_episode_reward_mean{algorithm="PPO"}
+  rl_training_sharpe_ratio{algorithm="PPO"}
+  rl_training_current_iteration{algorithm="PPO"}
+  sum(rl_training_iterations_total{algorithm="PPO"})
+
+SAC ALGORITHM:
+  rl_training_episode_reward_mean{algorithm="SAC"}
+  rl_training_sharpe_ratio{algorithm="SAC"}
+  sum(rl_training_iterations_total{algorithm="SAC"})
+
+DQN ALGORITHM:
+  rl_training_episode_reward_mean{algorithm="DQN"}
+  rl_training_sharpe_ratio{algorithm="DQN"}
+
+IMPALA ALGORITHM:
+  rl_training_episode_reward_mean{algorithm="IMPALA"}
+  rl_training_sharpe_ratio{algorithm="IMPALA"}
+
+═══════════════════════════════════════════════════════════════
+QUERIES FOR SPECIFIC AGENTS
+═══════════════════════════════════════════════════════════════
+
+AGENT 0 (Conservative):
+  rl_training_sharpe_ratio{agent_id="agent_0"}
+  rl_training_win_rate{agent_id="agent_0"}
+  rl_training_total_return{agent_id="agent_0"}
+  sum(rl_training_episodes_total{agent_id="agent_0"})
+
+AGENT 1 (Aggressive):
+  rl_training_sharpe_ratio{agent_id="agent_1"}
+  rl_training_win_rate{agent_id="agent_1"}
+  rl_training_total_return{agent_id="agent_1"}
+
+AGENT 2 (Balanced):
+  rl_training_sharpe_ratio{agent_id="agent_2"}
+  rl_training_win_rate{agent_id="agent_2"}
+  rl_training_total_return{agent_id="agent_2"}
+
+AGENT 3:
+  rl_training_sharpe_ratio{agent_id="agent_3"}
+  rl_training_win_rate{agent_id="agent_3"}
+
+AGENT 4:
+  rl_training_sharpe_ratio{agent_id="agent_4"}
+  rl_training_win_rate{agent_id="agent_4"}
+
+═══════════════════════════════════════════════════════════════
+COMPARISON QUERIES
+═══════════════════════════════════════════════════════════════
+
+AVERAGE SHARPE BY ALGORITHM:
+  avg by (algorithm) (rl_training_sharpe_ratio{})
+
+AVERAGE WIN RATE BY ALGORITHM:
+  avg by (algorithm) (rl_training_win_rate{})
+
+AVERAGE RETURN BY ALGORITHM:
+  avg by (algorithm) (rl_training_total_return{})
+
+AVERAGE SHARPE BY AGENT:
+  avg by (agent_id) (rl_training_sharpe_ratio{})
+
+BEST SHARPE RATIO:
+  max(rl_training_sharpe_ratio{})
+
+BEST RETURN:
+  max(rl_training_total_return{})
+
+WORST DRAWDOWN:
+  min(rl_training_max_drawdown{})
+
+═══════════════════════════════════════════════════════════════
+LOSS METRICS (Training Quality)
+═══════════════════════════════════════════════════════════════
+
+POLICY LOSS (Average):
+  rate(rl_training_policy_loss_sum[5m]) / rate(rl_training_policy_loss_count[5m])
+
+POLICY LOSS BY ALGORITHM:
+  rate(rl_training_policy_loss_sum{algorithm="PPO"}[5m]) / rate(rl_training_policy_loss_count{algorithm="PPO"}[5m])
+
+VALUE LOSS (Average):
+  rate(rl_training_value_loss_sum[5m]) / rate(rl_training_value_loss_count[5m])
+
+ENTROPY (Exploration):
+  rate(rl_training_entropy_sum[5m]) / rate(rl_training_entropy_count[5m])
+
+═══════════════════════════════════════════════════════════════
+ERROR METRICS
+═══════════════════════════════════════════════════════════════
+
+TOTAL ERRORS:
+  sum(rl_training_errors_total{})
+
+ERRORS BY TYPE:
+  sum by (error_type) (rl_training_errors_total{})
+
+ERROR RATE:
+  sum(rate(rl_training_errors_total[5m]))
+
+═══════════════════════════════════════════════════════════════
+ENVIRONMENT METRICS
+═══════════════════════════════════════════════════════════════
+
+TOTAL ENVIRONMENT STEPS:
+  sum(rl_training_environment_steps_total{})
+
+STEPS RATE (per second):
+  sum(rate(rl_training_environment_steps_total[5m]))
+
+STEPS BY ALGORITHM:
+  sum by (algorithm) (rl_training_environment_steps_total{})
+
+DATA LOAD TIME:
+  rate(rl_training_data_load_time_seconds_sum[5m]) / rate(rl_training_data_load_time_seconds_count[5m])
+
+═══════════════════════════════════════════════════════════════
+HOW TO VIEW IN PROMETHEUS
+═══════════════════════════════════════════════════════════════
+
+1. Go to: http://127.0.0.1:9090
+
+2. Copy any query above
+
+3. Paste into the query box
+
+4. Click "Execute"
+
+5. Click "Graph" tab to see time series
+
+6. Set time range: "Last 1 hour" (top right)
+
+7. You should see graphs with data!
+
+═══════════════════════════════════════════════════════════════
+VERIFY METRICS ARE AVAILABLE
+═══════════════════════════════════════════════════════════════
+
+First, check if target is up:
+  up{job="wealtharena_rl_training"}
+
+Should return: 1 (means working)
+
+Then try:
+  sum(rl_training_runs_total{})
+
+Should show a number (not empty)
+
+═══════════════════════════════════════════════════════════════
+

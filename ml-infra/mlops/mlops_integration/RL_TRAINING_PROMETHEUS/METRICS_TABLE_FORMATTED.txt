@@ -1,0 +1,99 @@
+ACTUAL PROMETHEUS METRIC RESULTS - COMPLETE TABLE
+=================================================
+
+┌──────────────────────────────────────────┬──────────┬──────────┬──────────┬──────────┐
+│ METRIC                                   │ PPO      │ SAC      │ DQN      │ IMPALA   │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ TRAINING LIFECYCLE                       │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Runs Started                             │ 1.0      │ -        │ -        │ -        │
+│ Runs Completed                           │ 1.0      │ -        │ -        │ -        │
+│ Runs Failed                              │ 0.0      │ -        │ -        │ -        │
+│ Active Status                            │ 0.0      │ -        │ -        │ -        │
+│ Current Iteration                        │ 20.0     │ -        │ -        │ -        │
+│ Total Iterations                         │ -        │ -        │ -        │ -        │
+│ Training Duration (avg)                  │ -        │ -        │ -        │ -        │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ EPISODE METRICS                         │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Episode Reward Mean                      │ 300.0    │ -        │ -        │ -        │
+│ Episode Length Mean                      │ -        │ -        │ -        │ -        │
+│ Episodes (Agent 0)                       │ 20.0     │ -        │ -        │ -        │
+│ Episodes (Agent 1)                       │ 20.0     │ -        │ -        │ -        │
+│ Episodes (Agent 2)                       │ 20.0     │ -        │ -        │ -        │
+│ Episodes (Agent 3)                       │ -        │ -        │ -        │ -        │
+│ Episodes (Agent 4)                       │ -        │ -        │ -        │ -        │
+│ Total Episodes                           │ 60.0     │ -        │ -        │ -        │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ PERFORMANCE METRICS                     │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Sharpe Ratio (Agent 0)                  │ 2.2      │ -        │ -        │ -        │
+│ Sharpe Ratio (Agent 1)                  │ 2.2      │ -        │ -        │ -        │
+│ Sharpe Ratio (Agent 2)                  │ 2.2      │ -        │ -        │ -        │
+│ Sharpe Ratio (Agent 3)                  │ -        │ -        │ -        │ -        │
+│ Sharpe Ratio (Agent 4)                  │ -        │ -        │ -        │ -        │
+│ Average Sharpe Ratio                     │ 2.2      │ -        │ -        │ -        │
+│ Max Drawdown (Agent 0)                  │ -        │ -        │ -        │ -        │
+│ Max Drawdown (Agent 1)                  │ -        │ -        │ -        │ -        │
+│ Max Drawdown (Agent 2)                  │ -        │ -        │ -        │ -        │
+│ Win Rate (Agent 0)                       │ -        │ -        │ -        │ -        │
+│ Win Rate (Agent 1)                       │ -        │ -        │ -        │ -        │
+│ Win Rate (Agent 2)                       │ -        │ -        │ -        │ -        │
+│ Total Return (Agent 0)                  │ -        │ -        │ -        │ -        │
+│ Total Return (Agent 1)                  │ -        │ -        │ -        │ -        │
+│ Total Return (Agent 2)                  │ -        │ -        │ -        │ -        │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ LOSS METRICS                            │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Policy Loss (Average)                   │ -        │ -        │ -        │ -        │
+│ Value Loss (Average)                     │ -        │ -        │ -        │ -        │
+│ Entropy (Average)                        │ -        │ -        │ -        │ -        │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ DATA & ENVIRONMENT                      │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Data Load Time (seconds)                │ -        │ -        │ -        │ -        │
+│ Environment Steps Total                  │ -        │ -        │ -        │ -        │
+│ Environment Steps Rate (steps/sec)      │ -        │ -        │ -        │ -        │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ERROR METRICS                           │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Training Errors Total                   │ 0.0      │ -        │ -        │ -        │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ TIME METRICS                            │          │          │          │          │
+├──────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Training Start Timestamp                │ -        │ -        │ -        │ -        │
+└──────────────────────────────────────────┴──────────┴──────────┴──────────┴──────────┘
+
+LEGEND:
+- = Metric structure exists but no training executed yet for that algorithm
+All metrics are labeled with algorithm (PPO/SAC/DQN/IMPALA) and agent_id (agent_0 through agent_4)
+
+═══════════════════════════════════════════════════════════════
+ACTUAL VALUES SUMMARY
+═══════════════════════════════════════════════════════════════
+
+PPO Algorithm (Current Values):
+  • Training Runs: 1 started, 1 completed
+  • Active Status: 0 (completed)
+  • Current Iteration: 20
+  • Episode Reward Mean: 300.0
+  • Total Episodes: 60 (20 per agent × 3 agents)
+  • Sharpe Ratio: 2.2 (all 3 agents)
+  • Training Errors: 0
+
+SAC, DQN, IMPALA Algorithms:
+  • Status: Metrics structure ready, awaiting training execution
+  • All 21 metric types will be populated when training runs
+  • Same metric structure as PPO, labeled with respective algorithm
+
+═══════════════════════════════════════════════════════════════
+METRIC AVAILABILITY
+═══════════════════════════════════════════════════════════════
+
+Total Metric Types: 21
+Algorithms Tracked: 4 (PPO, SAC, DQN, IMPALA)
+Agents Tracked: 5 (agent_0 through agent_4)
+
+Metrics with Actual Values: 11 (from PPO training)
+Metrics Ready (Structure Defined): 84 (21 types × 4 algorithms)
+

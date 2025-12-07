@@ -1,0 +1,71 @@
+{
+  "download_date": "2025-11-02T14:00:39.227617",
+  "num_symbols": 12,
+  "date_range": {
+    "start": "2022-11-02",
+    "end": "2025-11-02"
+  },
+  "target_currency": "AUD",
+  "years_requested": 3.0,
+  "symbols": {
+    "CL=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\CL_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "BZ=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\BZ_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "NG=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\NG_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "GC=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\GC_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "SI=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\SI_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "HG=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\HG_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "ZC=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\ZC_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "ZS=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\ZS_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "ZW=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\ZW_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "KC=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\KC_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "CC=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\CC_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    },
+    "CT=F": {
+      "file": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities\\CT_F_AUD_raw.csv",
+      "mode": "usd_to_aud"
+    }
+  },
+  "output_dir": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\commoditiesData\\data\\raw_commodities",
+  "adls": {
+    "enabled": true,
+    "filesystem": "raw",
+    "prefix": "asxCommodities",
+    "clean_first": false
+  },
+  "notes": [
+    "Yahoo continuous futures/spot proxies, daily interval.",
+    "If target=AUD, USD OHLC converted via 1/AUDUSD; FX is ffilled over weekends/holidays."
+  ]
+}

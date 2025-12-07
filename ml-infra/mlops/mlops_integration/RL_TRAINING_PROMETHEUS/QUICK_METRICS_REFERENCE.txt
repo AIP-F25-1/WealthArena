@@ -1,0 +1,70 @@
+RL TRAINING METRICS - QUICK REFERENCE
+======================================
+
+BASIC METRICS (Most Common)
+----------------------------
+
+1. Training Status
+   up{job="wealtharena_rl_training"}
+   sum(rl_training_active{})
+
+2. Training Runs
+   sum(rl_training_runs_total{})
+   sum by (status) (rl_training_runs_total{})
+
+3. Current Progress
+   rl_training_current_iteration{}
+   rl_training_episode_reward_mean{}
+   rl_training_episode_length_mean{}
+
+4. Performance
+   rl_training_sharpe_ratio{}
+   rl_training_win_rate{}
+   rl_training_total_return{}
+   rl_training_max_drawdown{}
+
+5. Episodes
+   sum(rl_training_episodes_total{})
+   sum by (agent_id) (rl_training_episodes_total{})
+
+6. Loss Metrics
+   rate(rl_training_policy_loss_sum[5m]) / rate(rl_training_policy_loss_count[5m])
+   rate(rl_training_value_loss_sum[5m]) / rate(rl_training_value_loss_count[5m])
+   rate(rl_training_entropy_sum[5m]) / rate(rl_training_entropy_count[5m])
+
+7. Errors
+   sum(rl_training_errors_total{})
+   sum by (error_type) (rl_training_errors_total{})
+
+FILTER BY ALGORITHM
+-------------------
+{algorithm="PPO"}
+{algorithm="SAC"}
+{algorithm=~"PPO|SAC"}
+
+FILTER BY AGENT
+---------------
+{agent_id="agent_0"}
+{agent_id=~"agent_0|agent_1"}
+
+COMBINED FILTERS
+----------------
+rl_training_sharpe_ratio{algorithm="PPO", agent_id="agent_0"}
+rl_training_episode_reward_mean{run_id="demo_run"}
+
+AGGREGATIONS
+------------
+avg(rl_training_sharpe_ratio{})
+max(rl_training_sharpe_ratio{})
+min(rl_training_max_drawdown{})
+sum by (algorithm) (rl_training_episodes_total{})
+
+FOR GRAPHS (Time Series)
+-------------------------
+rl_training_episode_reward_mean{}
+rl_training_current_iteration{}
+rl_training_sharpe_ratio{}
+rl_training_win_rate{}
+
+See AVAILABLE_METRICS.md for complete list!
+

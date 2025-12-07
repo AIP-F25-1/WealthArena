@@ -1,0 +1,169 @@
+version: '3.8'
+
+# ============================================================================
+# WealthArena Master Docker Compose Configuration
+# ============================================================================
+# This file orchestrates all WealthArena services.
+# 
+# Usage:
+#   - Start all services: docker-compose up -d
+#   - Start specific service: docker-compose up -d chatbot
+#   - View logs: docker-compose logs -f [service-name]
+#   - Stop all: docker-compose down
+#
+# Service-specific overrides can be added using docker-compose.override.yml
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # Chatbot Service (Python/FastAPI)
+  # ==========================================================================
+  chatbot:
+    build:
+      context: ./chatbot
+      dockerfile: Dockerfile
+    container_name: wealtharena-chatbot
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+      - chatbot/.env  # Service-specific env file (if exists)
+    environment:
+      - PORT=8000
+      - APP_HOST=0.0.0.0
+    volumes:
+      - ./chatbot/data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - wealtharena-network
+    depends_on:
+      - backend
+
+  # ==========================================================================
+  # Backend Service (Node.js/TypeScript)
+  # ==========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wealtharena-backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+      - backend/.env  # Service-specific env file (if exists)
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    volumes:
+      - ./backend/data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - wealtharena-network
+
+  # ==========================================================================
+  # RL Service (Python/Flask)
+  # ==========================================================================
+  rl-service:
+    build:
+      context: ./rl-service
+      dockerfile: Dockerfile
+    container_name: wealtharena-rl-service
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+      - rl-service/.env  # Service-specific env file (if exists)
+    environment:
+      - RL_SERVICE_HOST=0.0.0.0
+      - RL_SERVICE_PORT=5000
+    volumes:
+      - ./rl-service/models:/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - wealtharena-network
+
+  # ==========================================================================
+  # Monitoring Services (Prometheus, Grafana)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: wealtharena-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./ml-infra/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - wealtharena-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: wealtharena-grafana
+    ports:
+      - "3001:3000"  # Changed from 3000 to avoid conflict with backend
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ml-infra/mlops/grafana/provisioning:/etc/grafana/provisioning
+      - ./ml-infra/mlops/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    networks:
+      - wealtharena-network
+    depends_on:
+      - prometheus
+
+  # Optional: Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: wealtharena-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - wealtharena-network
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  wealtharena-network:
+    driver: bridge
+

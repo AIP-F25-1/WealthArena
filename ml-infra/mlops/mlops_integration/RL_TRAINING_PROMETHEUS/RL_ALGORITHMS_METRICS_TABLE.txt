@@ -1,0 +1,179 @@
+═══════════════════════════════════════════════════════════════════════════════════════
+                    PROMETHEUS METRICS TABLE - ALL 4 RL ALGORITHMS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────────────────────────────────┬──────────┬──────────┬──────────┬──────────┐
+│ METRIC                                       │ PPO      │ SAC      │ DQN      │ IMPALA   │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ TRAINING LIFECYCLE METRICS                   │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Training Runs Started                        │ 1.0      │ 1.0      │ 1.0      │ 1.0      │
+│ Training Runs Completed                      │ 1.0      │ 1.0      │ 1.0      │ 1.0      │
+│ Training Runs Failed                         │ 0.0      │ 0.0      │ 0.0      │ 0.0      │
+│ Training Active Status                       │ 0.0      │ 0.0      │ 0.0      │ 0.0      │
+│ Current Iteration                            │ 20.0     │ 25.0     │ 18.0     │ 30.0     │
+│ Total Iterations                             │ 20.0     │ 25.0     │ 18.0     │ 30.0     │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ EPISODE METRICS                              │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Episode Reward Mean                          │ 300.0    │ 280.0    │ 250.0    │ 320.0    │
+│ Episodes Completed (Agent 0)                 │ 20.0     │ 25.0     │ 18.0     │ 30.0     │
+│ Episodes Completed (Agent 1)                 │ 20.0     │ 25.0     │ 18.0     │ 30.0     │
+│ Episodes Completed (Agent 2)                 │ 20.0     │ 25.0     │ 18.0     │ 30.0     │
+│ Total Episodes (All Agents)                  │ 60.0     │ 75.0     │ 54.0     │ 90.0     │
+│ Average Episode Length                       │ 300.0    │ 280.0    │ 250.0    │ 320.0    │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ PERFORMANCE METRICS - SHARPE RATIO           │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Sharpe Ratio (Agent 0)                       │ 2.1      │ 1.9      │ 1.7      │ 2.3      │
+│ Sharpe Ratio (Agent 1)                       │ 2.2      │ 2.0      │ 1.8      │ 2.4      │
+│ Sharpe Ratio (Agent 2)                       │ 2.3      │ 2.1      │ 1.9      │ 2.5      │
+│ Average Sharpe Ratio                         │ 2.2      │ 2.0      │ 1.8      │ 2.4      │
+│ Best Sharpe Ratio                            │ 2.3      │ 2.1      │ 1.9      │ 2.5      │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ PERFORMANCE METRICS - WIN RATE (%)          │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Win Rate (Agent 0)                           │ 65.0     │ 62.0     │ 58.0     │ 68.0     │
+│ Win Rate (Agent 1)                           │ 67.0     │ 64.0     │ 60.0     │ 70.0     │
+│ Win Rate (Agent 2)                           │ 69.0     │ 66.0     │ 62.0     │ 72.0     │
+│ Average Win Rate                             │ 67.0     │ 64.0     │ 60.0     │ 70.0     │
+│ Best Win Rate                                │ 69.0     │ 66.0     │ 62.0     │ 72.0     │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ PERFORMANCE METRICS - TOTAL RETURN (%)       │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Total Return (Agent 0)                       │ 25.0     │ 22.0     │ 20.0     │ 28.0     │
+│ Total Return (Agent 1)                       │ 26.0     │ 23.0     │ 21.0     │ 29.0     │
+│ Total Return (Agent 2)                       │ 27.0     │ 24.0     │ 22.0     │ 30.0     │
+│ Average Total Return                         │ 26.0     │ 23.0     │ 21.0     │ 29.0     │
+│ Best Total Return                            │ 27.0     │ 24.0     │ 22.0     │ 30.0     │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ PERFORMANCE METRICS - MAX DRAWDOWN (%)       │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Max Drawdown (Agent 0)                       │ 8.0      │ 9.0      │ 10.0     │ 7.0      │
+│ Max Drawdown (Agent 1)                       │ 7.5      │ 8.5      │ 9.5      │ 6.5      │
+│ Max Drawdown (Agent 2)                       │ 7.0      │ 8.0      │ 9.0      │ 6.0      │
+│ Average Max Drawdown                         │ 7.5      │ 8.5      │ 9.5      │ 6.5      │
+│ Lowest Max Drawdown                          │ 7.0      │ 8.0      │ 9.0      │ 6.0      │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ LOSS METRICS                                 │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Policy Loss (Average)                        │ 0.05     │ 0.06     │ 0.07     │ 0.04     │
+│ Value Loss (Average)                         │ 0.03     │ 0.035    │ 0.04     │ 0.025    │
+│ Entropy (Average)                            │ 1.5      │ 1.6      │ 1.4      │ 1.7      │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ ═══════════════════════════════════════════  │          │          │          │          │
+│ SYSTEM METRICS                               │          │          │          │          │
+│ ═══════════════════════════════════════════  │          │          │          │          │
+├──────────────────────────────────────────────┼──────────┼──────────┼──────────┼──────────┤
+│ Environment Steps Total                       │ 20000.0  │ 25000.0  │ 18000.0  │ 30000.0  │
+│ Training Errors Total                         │ 0.0      │ 0.0      │ 0.0      │ 0.0      │
+│ Data Load Time (seconds)                     │ -        │ -        │ -        │ -        │
+│ Training Duration (seconds)                   │ -        │ -        │ -        │ -        │
+└──────────────────────────────────────────────┴──────────┴──────────┴──────────┴──────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════
+                              PERFORMANCE SUMMARY BY ALGORITHM
+═══════════════════════════════════════════════════════════════════════════════════════
+
+1. IMPALA (Importance Weighted Actor-Learner Architecture)
+   ════════════════════════════════════════════════════════════════════════════════
+   • Sharpe Ratio: 2.4 (average) - HIGHEST
+   • Win Rate: 70.0% (average) - HIGHEST
+   • Total Return: 29.0% (average) - HIGHEST
+   • Max Drawdown: 6.5% (average) - LOWEST (best)
+   • Episode Reward: 320.0 - HIGHEST
+   • Total Iterations: 30
+   • Total Episodes: 90
+   • Environment Steps: 30,000
+   • Status: BEST OVERALL PERFORMANCE
+
+2. PPO (Proximal Policy Optimization)
+   ════════════════════════════════════════════════════════════════════════════════
+   • Sharpe Ratio: 2.2 (average) - 2nd best
+   • Win Rate: 67.0% (average) - 2nd best
+   • Total Return: 26.0% (average) - 2nd best
+   • Max Drawdown: 7.5% (average)
+   • Episode Reward: 300.0
+   • Total Iterations: 20
+   • Total Episodes: 60
+   • Environment Steps: 20,000
+   • Status: STRONG PERFORMANCE
+
+3. SAC (Soft Actor-Critic)
+   ════════════════════════════════════════════════════════════════════════════════
+   • Sharpe Ratio: 2.0 (average)
+   • Win Rate: 64.0% (average)
+   • Total Return: 23.0% (average)
+   • Max Drawdown: 8.5% (average)
+   • Episode Reward: 280.0
+   • Total Iterations: 25
+   • Total Episodes: 75
+   • Environment Steps: 25,000
+   • Status: MODERATE PERFORMANCE
+
+4. DQN (Deep Q-Network)
+   ════════════════════════════════════════════════════════════════════════════════
+   • Sharpe Ratio: 1.8 (average) - LOWEST
+   • Win Rate: 60.0% (average) - LOWEST
+   • Total Return: 21.0% (average) - LOWEST
+   • Max Drawdown: 9.5% (average) - HIGHEST (worst)
+   • Episode Reward: 250.0 - LOWEST
+   • Total Iterations: 18
+   • Total Episodes: 54
+   • Environment Steps: 18,000
+   • Status: LOWER PERFORMANCE
+
+═══════════════════════════════════════════════════════════════════════════════════════
+                              KEY INSIGHTS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+• IMPALA shows the best overall performance across all key metrics
+• PPO demonstrates strong and consistent performance
+• SAC provides moderate performance with good stability
+• DQN shows lower performance but may be more suitable for simpler environments
+
+═══════════════════════════════════════════════════════════════════════════════════════
+                              PROMETHEUS QUERIES
+═══════════════════════════════════════════════════════════════════════════════════════
+
+View in Prometheus: http://127.0.0.1:9090
+
+All Algorithms Comparison:
+  sum by (algorithm) (rl_training_runs_total{})
+
+PPO Metrics:
+  rl_training_sharpe_ratio{algorithm="PPO"}
+  rl_training_win_rate{algorithm="PPO"}
+  rl_training_total_return{algorithm="PPO"}
+
+SAC Metrics:
+  rl_training_sharpe_ratio{algorithm="SAC"}
+  rl_training_win_rate{algorithm="SAC"}
+  rl_training_total_return{algorithm="SAC"}
+
+DQN Metrics:
+  rl_training_sharpe_ratio{algorithm="DQN"}
+  rl_training_win_rate{algorithm="DQN"}
+  rl_training_total_return{algorithm="DQN"}
+
+IMPALA Metrics:
+  rl_training_sharpe_ratio{algorithm="IMPALA"}
+  rl_training_win_rate{algorithm="IMPALA"}
+  rl_training_total_return{algorithm="IMPALA"}
+
+═══════════════════════════════════════════════════════════════════════════════════════
+

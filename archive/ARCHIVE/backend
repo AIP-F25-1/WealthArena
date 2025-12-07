@@ -1,0 +1,233 @@
+# Backend Deployment Failure Analysis
+
+## Summary
+The backend deployment appears successful but the container fails to start, causing health check timeouts. The root cause is **database connection failure during startup**, which causes the server to crash before it can respond to health checks.
+
+## Root Causes Identified
+
+### 1. **Database Configuration Mismatch** ⚠️ CRITICAL
+**Location:** `infrastructure/azure_deployment/deploy_backend_containerapp.ps1` (lines 520-524)
+
+**Problem:**
+- Deployment script sets `DB_PORT=1433` (SQL Server port)
+- Backend code uses PostgreSQL (`database-postgres.ts`)
+- PostgreSQL uses port `5432`, not `1433`
+- This causes immediate connection failure
+
+**Current Code:**
+```powershell
+$envVarsList = @(
+    "DB_HOST=$sqlServerHost",
+    "DB_NAME=wealtharena_db",
+    "DB_USER=wealtharena_admin",
+    "DB_PORT=1433",  # ❌ WRONG - This is SQL Server port
+    "DB_ENCRYPT=true",
+    ...
+)
+```
+
+**Fix Required:**
+```powershell
+"DB_PORT=5432",  # ✅ Correct PostgreSQL port
+"DB_TYPE=postgres",  # ✅ Explicitly set database type
+```
+
+### 2. **Missing DB_TYPE Environment Variable** ⚠️ CRITICAL
+**Location:** `infrastructure/azure_deployment/deploy_backend_containerapp.ps1`
+
+**Problem:**
+- `DB_TYPE` is not set in environment variables
+- Backend defaults to `'sqlserver'` (see `backend/src/config/db.ts` line 12)
+- This causes the backend to use the wrong database module
+
+**Fix Required:**
+Add `"DB_TYPE=postgres"` to environment variables list.
+
+### 3. **Database Connection on Startup Crashes Server** ⚠️ CRITICAL
+**Location:** `backend/src/server.ts` (lines 136-161)
+
+**Problem:**
+- Server calls `await getPool()` during startup (line 140)
+- If database connection fails, server calls `process.exit(1)` (line 159)
+- This prevents the server from ever listening on the port
+- Health checks fail because the server never starts
+
+**Current Code:**
+```typescript
+const startServer = async () => {
+  try {
+    console.log('🔌 Connecting to database...');
+    await getPool();  // ❌ Crashes if connection fails
+    app.listen(PORT, () => { ... });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);  // ❌ Server exits immediately
+  }
+};
+```
+
+**Fix Required:**
+- Make database connection optional during startup
+- Allow server to start even if database connection fails
+- Add health check endpoint that verifies database connectivity separately
+
+### 4. **Missing DB_PASSWORD from Key Vault** ⚠️ HIGH
+**Location:** `infrastructure/azure_deployment/deploy_backend_containerapp.ps1` (lines 491-504)
+
+**Problem:**
+- Script fails to retrieve `sql-password` from Key Vault
+- `DB_PASSWORD` environment variable is not set
+- Even with correct port, connection would fail without password
+
+**Current Behavior:**
+```powershell
+WARNING: Failed to retrieve DB password from Key Vault
+Database connection may fail. Please set DB_PASSWORD manually.
+```
+
+**Fix Required:**
+- Verify Key Vault secret name matches (`sql-password` vs `db-password`)
+- Check Key Vault access permissions
+- Ensure managed identity has Key Vault access
+
+### 5. **Health Check Timeout** ⚠️ MEDIUM
+**Location:** `infrastructure/azure_deployment/deploy_backend_containerapp.ps1` (lines 563-576)
+
+**Problem:**
+- Health check waits only 30 seconds
+- Container may need more time to start (especially on first deployment)
+- If server crashes on startup, health check will always timeout
+
+**Current Code:**
+```powershell
+Write-ColorOutput "Waiting for container to start (30 seconds)..." $Yellow
+Start-Sleep -Seconds 30
+```
+
+**Fix Required:**
+- Increase wait time to 60-90 seconds
+- Add retry logic with exponential backoff
+- Check container logs if health check fails
+
+## Recommended Fixes
+
+### Priority 1: Fix Database Configuration (Immediate)
+1. Change `DB_PORT` from `1433` to `5432` in deployment script
+2. Add `DB_TYPE=postgres` to environment variables
+3. Ensure PostgreSQL connection string is correct
+
+### Priority 2: Make Database Connection Optional (High)
+1. Modify `server.ts` to allow server startup without database
+2. Add database connectivity check to health endpoint
+3. Return health status even if database is unavailable
+
+### Priority 3: Fix Key Vault Access (High)
+1. Verify Key Vault secret name and permissions
+2. Ensure managed identity has `get` and `list` permissions on Key Vault
+3. Test Key Vault access manually
+
+### Priority 4: Improve Health Check Logic (Medium)
+1. Increase wait time and add retries
+2. Check container logs on failure
+3. Add better error messages
+
+## Code Changes Required
+
+### 1. Fix Deployment Script (`deploy_backend_containerapp.ps1`)
+```powershell
+$envVarsList = @(
+    "DB_HOST=$sqlServerHost",
+    "DB_NAME=wealtharena_db",
+    "DB_USER=wealtharena_admin",
+    "DB_PORT=5432",  # ✅ Fixed: PostgreSQL port
+    "DB_TYPE=postgres",  # ✅ Added: Explicit database type
+    "DB_ENCRYPT=true",
+    "NODE_ENV=production",
+    "PORT=8080",
+    "JWT_SECRET=secretref:jwt-secret",
+    "JWT_EXPIRES_IN=7d"
+)
+```
+
+### 2. Make Database Connection Optional (`backend/src/server.ts`)
+```typescript
+const startServer = async () => {
+  try {
+    // Try to connect to database, but don't crash if it fails
+    console.log('🔌 Connecting to database...');
+    try {
+      await getPool();
+      console.log('✅ Database connection established');
+    } catch (dbError) {
+      console.warn('⚠️ Database connection failed, but continuing:', dbError);
+      console.warn('⚠️ Some features may not work until database is available');
+    }
+    
+    // Start listening even if database connection failed
+    app.listen(PORT, () => {
+      console.log('🚀 Server started on port', PORT);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+```
+
+### 3. Add Database Health Check (`backend/src/server.ts`)
+```typescript
+// Enhanced health endpoint
+app.get('/health', async (req, res) => {
+  const health = {
+    status: 'healthy',
+    service: 'backend',
+    timestamp: new Date().toISOString(),
+    database: 'unknown'
+  };
+  
+  // Check database connectivity
+  try {
+    await getPool().query('SELECT 1');
+    health.database = 'connected';
+  } catch (error) {
+    health.database = 'disconnected';
+    health.status = 'degraded';
+  }
+  
+  const statusCode = health.status === 'healthy' ? 200 : 503;
+  res.status(statusCode).json(health);
+});
+```
+
+## Testing Steps
+
+1. **Verify Database Configuration:**
+   ```powershell
+   # Check what database type is being used
+   az containerapp show --name wealtharena-backend --resource-group rg-wealtharena-northcentralus --query properties.template.containers[0].env
+   ```
+
+2. **Check Container Logs:**
+   ```powershell
+   az containerapp logs show --name wealtharena-backend --resource-group rg-wealtharena-northcentralus --follow
+   ```
+
+3. **Test Health Endpoint Manually:**
+   ```powershell
+   curl https://wealtharena-backend.delightfulsky-a2cf21ce.northcentralus.azurecontainerapps.io/health
+   ```
+
+## Expected Behavior After Fixes
+
+1. ✅ Server starts successfully even if database connection fails
+2. ✅ Health endpoint returns 200 with database status
+3. ✅ Container logs show database connection attempts
+4. ✅ Deployment script sets correct database configuration
+5. ✅ Key Vault password is retrieved and used correctly
+
+---
+
+**Status:** Analysis complete - Ready for implementation  
+**Priority:** High - Blocks deployment  
+**Estimated Fix Time:** 30-60 minutes
+

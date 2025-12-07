@@ -1,0 +1,146 @@
+═══════════════════════════════════════════════════════════════
+  HOW TO VIEW RL TRAINING GRAPHS IN PROMETHEUS
+═══════════════════════════════════════════════════════════════
+
+PROBLEM: Prometheus shows "Empty query result" or no graphs
+
+REASON: The metrics server must be running FIRST!
+
+SOLUTION: Follow these steps EXACTLY:
+
+═══════════════════════════════════════════════════════════════
+STEP 1: START THE METRICS SERVER
+═══════════════════════════════════════════════════════════════
+
+Open a NEW PowerShell or Command Prompt window:
+
+1. Navigate to the folder:
+   cd H:\wealtharena\mlops_integration\RL_TRAINING_PROMETHEUS
+
+2. Run the server:
+   python simple_metrics_server.py
+
+3. You should see:
+   ✅ Server started: http://localhost:8011/metrics
+   ✓ Training started
+   ✓ Iteration 1 - Metrics updated
+   ✓ Iteration 2 - Metrics updated
+   ... (continues)
+   ✅ Metrics server is running!
+
+4. ⚠️  KEEP THIS WINDOW OPEN! Don't close it!
+
+═══════════════════════════════════════════════════════════════
+STEP 2: WAIT 15-20 SECONDS
+═══════════════════════════════════════════════════════════════
+
+Wait for the server to generate all metrics (about 20 iterations)
+
+═══════════════════════════════════════════════════════════════
+STEP 3: VERIFY METRICS ARE AVAILABLE
+═══════════════════════════════════════════════════════════════
+
+Open in browser: http://localhost:8011/metrics
+
+You should see lines like:
+  # HELP rl_training_runs_total Total training runs
+  # TYPE rl_training_runs_total counter
+  rl_training_runs_total{algorithm="PPO",status="started"} 1.0
+  rl_training_episode_reward_mean{algorithm="PPO",run_id="demo_run"} 110.0
+  ... (many more metrics)
+
+If you see these, metrics are working! ✅
+
+═══════════════════════════════════════════════════════════════
+STEP 4: CHECK PROMETHEUS TARGETS
+═══════════════════════════════════════════════════════════════
+
+Go to: http://127.0.0.1:9090/targets
+
+Find "wealtharena_rl_training" - it should show:
+  Status: UP (green checkmark)
+  Last Scrape: (recent time, within last 30 seconds)
+
+If it shows DOWN (red X):
+  - Make sure metrics server is still running
+  - Wait 30 seconds
+  - Refresh the targets page
+
+═══════════════════════════════════════════════════════════════
+STEP 5: QUERY PROMETHEUS
+═══════════════════════════════════════════════════════════════
+
+Go to: http://127.0.0.1:9090
+
+Try these queries ONE BY ONE:
+
+1. First, check if target is up:
+   up{job="wealtharena_rl_training"}
+   
+   Should return: 1 (means target is accessible)
+
+2. Total training runs:
+   sum(rl_training_runs_total{})
+   
+   Should show: 2 (started + completed)
+
+3. Episode reward (this should show a graph!):
+   rl_training_episode_reward_mean{}
+   
+   Click "Graph" tab - you should see a line graph!
+
+4. Sharpe ratio:
+   rl_training_sharpe_ratio{}
+   
+   Should show values for different agents
+
+5. Current iteration:
+   rl_training_current_iteration{}
+   
+   Should show the current iteration number
+
+═══════════════════════════════════════════════════════════════
+STEP 6: VIEW GRAPHS
+═══════════════════════════════════════════════════════════════
+
+For any query:
+1. Enter the query
+2. Click "Execute"
+3. Click "Graph" tab (not "Table")
+4. Set time range to "Last 1 hour" (top right)
+5. You should see a graph!
+
+═══════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+
+If still no graphs:
+
+1. ✅ Is metrics server running? (Check the window you opened)
+2. ✅ Can you access http://localhost:8011/metrics? (Should show metrics)
+3. ✅ Is Prometheus target UP? (Check /targets page)
+4. ✅ Did you wait 15-20 seconds after starting server?
+5. ✅ Are you clicking "Graph" tab, not "Table"?
+6. ✅ Is time range set correctly? (Try "Last 1 hour")
+
+If metrics endpoint (step 2) doesn't work:
+- Check if Python is installed: python --version
+- Install prometheus-client: pip install prometheus-client
+- Check if port 8011 is in use: netstat -ano | findstr :8011
+
+If Prometheus target is DOWN:
+- Make sure metrics server is running
+- Check Prometheus config in config/prometheus.yml
+- Restart Prometheus: docker-compose restart prometheus
+
+═══════════════════════════════════════════════════════════════
+QUICK REFERENCE
+═══════════════════════════════════════════════════════════════
+
+Metrics Server: python simple_metrics_server.py
+Metrics Endpoint: http://localhost:8011/metrics
+Prometheus: http://127.0.0.1:9090
+Prometheus Targets: http://127.0.0.1:9090/targets
+
+═══════════════════════════════════════════════════════════════
+

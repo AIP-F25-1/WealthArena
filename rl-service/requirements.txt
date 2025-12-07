@@ -1,0 +1,21 @@
+Flask==3.0.0
+gunicorn==21.2.0
+flask-cors==4.0.0
+numpy>=2.1.0
+pandas>=2.2.0
+scikit-learn>=1.5.2
+# ray[rllib]>=2.10.0  # Commented out: Ray doesn't have Python 3.13 wheels yet
+# If you need Ray, consider using Python 3.11 or 3.12, or wait for Python 3.13 support
+# Note: pyarrow may need to be installed separately or use pre-built wheel
+# If build fails, try: pip install pyarrow --only-binary :all:
+torch>=2.6.0  # Updated for Python 3.13 compatibility
+requests==2.31.0
+psycopg2-binary>=2.9.10
+python-dotenv==1.0.0
+google-cloud-storage==2.10.0
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-flask==1.3.0
+coverage>=7.6.1
+prometheus-client==0.19.0
+

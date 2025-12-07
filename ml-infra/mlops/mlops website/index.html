@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WealthArena MLOps Portal</title>
+    <style>
+        :root {
+            --bg: #031214;
+            --panel: #071d1a;
+            --panel2: #052623;
+            --text: #e6fdf5;
+            --muted: #8dcfbf;
+            --brand: #37ff88;
+            --accent: #20d676;
+            --ok: #37ff88;
+            --fail: #f87171;
+            --border: rgba(55,255,136,0.08);
+            --radius: 16px;
+            --shadow: 0 20px 40px rgba(0,0,0,0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(1200px 800px at 20% -10%, rgba(55,255,136,0.18), transparent),
+                        radial-gradient(1000px 600px at 120% 10%, rgba(24,214,118,0.2), transparent),
+                        radial-gradient(900px 900px at 50% 120%, rgba(13,100,85,0.5), transparent),
+                        var(--bg);
+            color: var(--text);
+            font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 1.2rem;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .service-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(55,255,136,0.45);
+            box-shadow: 0 18px 40px rgba(55,255,136,0.25);
+        }
+
+        .service-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .service-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .mlflow-icon {
+            background: linear-gradient(135deg, #20d676, #37ff88);
+        }
+
+        .prometheus-icon {
+            background: linear-gradient(135deg, #17c168, #2fff7f);
+        }
+
+        .grafana-icon {
+            background: linear-gradient(135deg, #0fb058, #25f072);
+        }
+
+        .service-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.92);
+            margin-bottom: 0.25rem;
+        }
+
+        .service-desc {
+            color: rgba(141,207,191,0.9);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .service-link {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(55,255,136,0.95), rgba(24,214,118,0.95));
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56,189,248,0.3);
+        }
+
+        .service-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 24px rgba(55,255,136,0.35);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        .status-online {
+            background: rgba(55,255,136,0.18);
+            color: var(--ok);
+            border: 1px solid rgba(55,255,136,0.35);
+        }
+
+        .status-offline {
+            background: rgba(239,68,68,0.15);
+            color: var(--fail);
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info-section {
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .info-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--brand);
+        }
+
+        .info-section p {
+            color: var(--muted);
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .url-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .url-list li {
+            padding: 0.75rem;
+            background: var(--panel);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-family: 'Courier New', monospace;
+            color: rgba(255,255,255,0.85);
+            border-left: 3px solid rgba(55,255,136,0.6);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WealthArena MLOps Portal</h1>
+            <p class="subtitle">Machine Learning Operations Dashboard</p>
+        </header>
+
+        <div class="services-grid">
+            <!-- MLflow Card -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon mlflow-icon">ML</div>
+                    <div>
+                        <div class="service-title">MLflow</div>
+                        <div class="status-badge status-online" id="mlflow-status">
+                            <span class="status-dot"></span>
+                            <span>Checking...</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="service-desc">
+                    Track experiments, log metrics, and manage ML models. View training runs, compare models, and monitor model performance.
+                </p>
+                <a href="http://localhost:5000" target="_blank" class="service-link">Open MLflow →</a>
+            </div>
+
+            <!-- Prometheus Card -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon prometheus-icon">P</div>
+                    <div>
+                        <div class="service-title">Prometheus</div>
+                        <div class="status-badge status-online" id="prom-status">
+                            <span class="status-dot"></span>
+                            <span>Checking...</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="service-desc">
+                    Monitor system metrics, query time-series data, and set up alerts. View chatbot, RL service, and backend metrics.
+                </p>
+                <a href="http://127.0.0.1:9090" target="_blank" class="service-link">Open Prometheus →</a>
+            </div>
+
+            <!-- Grafana Card -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon grafana-icon">G</div>
+                    <div>
+                        <div class="service-title">Grafana</div>
+                        <div class="status-badge status-online" id="grafana-status">
+                            <span class="status-dot"></span>
+                            <span>Checking...</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="service-desc">
+                    Visualize metrics with beautiful dashboards. View service health, data pipeline metrics, and system overview.
+                </p>
+                <a href="http://localhost:3000" target="_blank" class="service-link">Open Grafana →</a>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>Quick Access URLs</h2>
+            <ul class="url-list">
+                <li>MLflow: http://localhost:5000</li>
+                <li>Prometheus: http://127.0.0.1:9090</li>
+                <li>Grafana: http://localhost:3000</li>
+            </ul>
+            <p style="margin-top: 1.5rem;">
+                <strong>Note:</strong> Make sure all services are running in Docker before accessing the links above.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function checkStatus(url, elementId) {
+            const el = document.getElementById(elementId);
+            try {
+                const response = await fetch(url, { 
+                    method: 'GET', 
+                    mode: 'no-cors',
+                    cache: 'no-store'
+                });
+                el.className = 'status-badge status-online';
+                el.innerHTML = '<span class="status-dot"></span><span>Online</span>';
+            } catch (e) {
+                el.className = 'status-badge status-offline';
+                el.innerHTML = '<span class="status-dot"></span><span>Offline</span>';
+            }
+        }
+
+        function refreshStatus() {
+            checkStatus('http://localhost:5000', 'mlflow-status');
+            checkStatus('http://127.0.0.1:9090', 'prom-status');
+            checkStatus('http://localhost:3000', 'grafana-status');
+        }
+
+        // Check status on load
+        window.addEventListener('load', () => {
+            refreshStatus();
+            // Refresh every 30 seconds
+            setInterval(refreshStatus, 30000);
+        });
+    </script>
+</body>
+</html>
+

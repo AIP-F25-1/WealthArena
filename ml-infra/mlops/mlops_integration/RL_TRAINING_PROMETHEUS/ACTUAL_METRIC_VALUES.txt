@@ -1,0 +1,153 @@
+ACTUAL PROMETHEUS METRIC VALUES FOR ALL 4 RL ALGORITHMS
+========================================================
+
+CURRENT METRIC VALUES (As of Latest Scrape)
+--------------------------------------------
+
+═══════════════════════════════════════════════════════════════
+PPO (Proximal Policy Optimization) - ACTUAL VALUES
+═══════════════════════════════════════════════════════════════
+
+Training Lifecycle Metrics:
+  rl_training_runs_total{algorithm="PPO",status="started"} = 1.0
+  rl_training_runs_total{algorithm="PPO",status="completed"} = 1.0
+  rl_training_active{algorithm="PPO"} = 0.0 (not currently active)
+  rl_training_current_iteration{algorithm="PPO",run_id="demo_run"} = 20.0
+
+Episode Metrics:
+  rl_training_episode_reward_mean{algorithm="PPO",run_id="demo_run"} = 300.0
+  rl_training_episodes_total{agent_id="agent_0",algorithm="PPO"} = 20.0
+  rl_training_episodes_total{agent_id="agent_1",algorithm="PPO"} = 20.0
+  rl_training_episodes_total{agent_id="agent_2",algorithm="PPO"} = 20.0
+
+Performance Metrics:
+  rl_training_sharpe_ratio{agent_id="agent_0",algorithm="PPO"} = 2.2
+  rl_training_sharpe_ratio{agent_id="agent_1",algorithm="PPO"} = 2.2
+  rl_training_sharpe_ratio{agent_id="agent_2",algorithm="PPO"} = 2.2
+
+Summary for PPO:
+  - Training Runs: 1 started, 1 completed
+  - Current Iteration: 20
+  - Episode Reward Mean: 300.0
+  - Total Episodes: 60 (20 per agent × 3 agents)
+  - Sharpe Ratio: 2.2 (all agents)
+  - Status: Training completed (active=0)
+
+═══════════════════════════════════════════════════════════════
+SAC (Soft Actor-Critic) - ACTUAL VALUES
+═══════════════════════════════════════════════════════════════
+
+Status: No metrics available yet
+Reason: SAC training has not been run yet
+Note: Metrics will be generated when SAC training is executed
+
+Expected Metrics (when training runs):
+  rl_training_runs_total{algorithm="SAC",status="started"} = (value)
+  rl_training_runs_total{algorithm="SAC",status="completed"} = (value)
+  rl_training_active{algorithm="SAC"} = (0 or 1)
+  rl_training_current_iteration{algorithm="SAC",run_id="..."} = (value)
+  rl_training_episode_reward_mean{algorithm="SAC",run_id="..."} = (value)
+  rl_training_sharpe_ratio{agent_id="...",algorithm="SAC"} = (value)
+  rl_training_episodes_total{agent_id="...",algorithm="SAC"} = (value)
+
+═══════════════════════════════════════════════════════════════
+DQN (Deep Q-Network) - ACTUAL VALUES
+═══════════════════════════════════════════════════════════════
+
+Status: No metrics available yet
+Reason: DQN training has not been run yet
+Note: Metrics will be generated when DQN training is executed
+
+Expected Metrics (when training runs):
+  rl_training_runs_total{algorithm="DQN",status="started"} = (value)
+  rl_training_runs_total{algorithm="DQN",status="completed"} = (value)
+  rl_training_active{algorithm="DQN"} = (0 or 1)
+  rl_training_current_iteration{algorithm="DQN",run_id="..."} = (value)
+  rl_training_episode_reward_mean{algorithm="DQN",run_id="..."} = (value)
+  rl_training_sharpe_ratio{agent_id="...",algorithm="DQN"} = (value)
+  rl_training_episodes_total{agent_id="...",algorithm="DQN"} = (value)
+
+═══════════════════════════════════════════════════════════════
+IMPALA - ACTUAL VALUES
+═══════════════════════════════════════════════════════════════
+
+Status: No metrics available yet
+Reason: IMPALA training has not been run yet
+Note: Metrics will be generated when IMPALA training is executed
+
+Expected Metrics (when training runs):
+  rl_training_runs_total{algorithm="IMPALA",status="started"} = (value)
+  rl_training_runs_total{algorithm="IMPALA",status="completed"} = (value)
+  rl_training_active{algorithm="IMPALA"} = (0 or 1)
+  rl_training_current_iteration{algorithm="IMPALA",run_id="..."} = (value)
+  rl_training_episode_reward_mean{algorithm="IMPALA",run_id="..."} = (value)
+  rl_training_sharpe_ratio{agent_id="...",algorithm="IMPALA"} = (value)
+  rl_training_episodes_total{agent_id="...",algorithm="IMPALA"} = (value)
+
+═══════════════════════════════════════════════════════════════
+AGGREGATE VALUES (All Algorithms Combined)
+═══════════════════════════════════════════════════════════════
+
+Total Training Runs: 2
+  - Started: 1
+  - Completed: 1
+  - Failed: 0
+
+Active Training Sessions: 0
+  - No training currently running
+
+Total Episodes: 60
+  - Agent 0: 20 episodes
+  - Agent 1: 20 episodes
+  - Agent 2: 20 episodes
+
+Total Iterations: (calculated from current iteration = 20)
+
+═══════════════════════════════════════════════════════════════
+METRIC VALUES BY CATEGORY
+═══════════════════════════════════════════════════════════════
+
+1. Training Lifecycle:
+   - Runs Started: 1
+   - Runs Completed: 1
+   - Runs Failed: 0
+   - Currently Active: 0
+
+2. Episode Metrics:
+   - Mean Episode Reward: 300.0
+   - Total Episodes: 60
+   - Episodes per Agent: 20 (agent_0, agent_1, agent_2)
+
+3. Performance Metrics:
+   - Sharpe Ratio: 2.2 (all agents)
+   - Win Rate: (not yet generated)
+   - Total Return: (not yet generated)
+   - Max Drawdown: (not yet generated)
+
+4. Training Progress:
+   - Current Iteration: 20
+   - Training Status: Completed
+
+═══════════════════════════════════════════════════════════════
+HOW TO GET MORE METRIC VALUES
+═══════════════════════════════════════════════════════════════
+
+To see metrics for SAC, DQN, and IMPALA:
+1. Run training with those algorithms
+2. Metrics will be automatically generated
+3. Query Prometheus for algorithm-specific metrics
+
+To see more performance metrics:
+1. Run longer training sessions
+2. Metrics update in real-time
+3. Check Prometheus every 10 seconds (scrape interval)
+
+═══════════════════════════════════════════════════════════════
+NOTE
+═══════════════════════════════════════════════════════════════
+
+Current metrics show PPO algorithm results from test/demo run.
+SAC, DQN, and IMPALA metrics will appear when those algorithms
+are used for training. All 4 algorithms use the same metric
+structure - they just have different algorithm labels.
+

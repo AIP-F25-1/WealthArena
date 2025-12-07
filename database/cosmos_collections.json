@@ -1,0 +1,471 @@
+{
+  "cosmos_db_collections": {
+    "description": "WealthArena Cosmos DB Collections Schema",
+    "database_name": "wealtharena_cosmos",
+    "collections": [
+      {
+        "name": "users",
+        "description": "User accounts and authentication data",
+        "partition_key": "/id",
+        "indexing_policy": {
+          "automatic": true,
+          "indexing_mode": "consistent",
+          "included_paths": [
+            {
+              "path": "/*"
+            }
+          ],
+          "excluded_paths": [
+            {
+              "path": "/\"_etag\"/?"
+            }
+          ]
+        },
+        "schema": {
+          "id": "string (user ID)",
+          "email": "string",
+          "username": "string",
+          "display_name": "string",
+          "avatar_url": "string",
+          "tier": "string (bronze|silver|gold|platinum|diamond)",
+          "xp": "number",
+          "level": "number",
+          "created_at": "datetime",
+          "last_login": "datetime",
+          "is_active": "boolean",
+          "subscription_status": "string (free|premium|pro)",
+          "preferences": {
+            "theme": "string (light|dark|auto)",
+            "notifications": "boolean",
+            "risk_tolerance": "string (conservative|moderate|aggressive)",
+            "language": "string",
+            "timezone": "string"
+          }
+        }
+      },
+      {
+        "name": "user_profiles",
+        "description": "Extended user profile information",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "first_name": "string",
+          "last_name": "string",
+          "bio": "string",
+          "location": "string",
+          "date_of_birth": "datetime",
+          "occupation": "string",
+          "investment_experience": "string (beginner|intermediate|advanced|expert)",
+          "investment_goals": "array of strings",
+          "risk_profile": {
+            "risk_tolerance": "string",
+            "investment_horizon": "string (short|medium|long)",
+            "max_drawdown_tolerance": "number",
+            "volatility_tolerance": "string (low|medium|high)"
+          },
+          "social_links": {
+            "linkedin": "string",
+            "twitter": "string",
+            "website": "string"
+          },
+          "achievements": "array of achievement objects",
+          "badges": "array of badge objects",
+          "statistics": {
+            "total_trades": "number",
+            "winning_trades": "number",
+            "total_return": "number",
+            "best_performance": "number",
+            "games_played": "number",
+            "games_won": "number"
+          },
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      {
+        "name": "user_settings",
+        "description": "User application settings and preferences",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "app_settings": {
+            "theme": "string",
+            "language": "string",
+            "currency": "string",
+            "timezone": "string",
+            "date_format": "string",
+            "number_format": "string"
+          },
+          "trading_settings": {
+            "default_position_size": "number",
+            "max_positions": "number",
+            "auto_trade": "boolean",
+            "risk_management": {
+              "stop_loss_percentage": "number",
+              "take_profit_percentage": "number",
+              "max_drawdown_limit": "number"
+            }
+          },
+          "notification_settings": {
+            "email_notifications": "boolean",
+            "push_notifications": "boolean",
+            "signal_alerts": "boolean",
+            "game_invites": "boolean",
+            "achievement_notifications": "boolean"
+          },
+          "privacy_settings": {
+            "profile_visibility": "string (public|friends|private)",
+            "portfolio_visibility": "string (public|friends|private)",
+            "leaderboard_visibility": "boolean",
+            "data_sharing": "boolean"
+          },
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      {
+        "name": "achievements",
+        "description": "User achievements and milestones",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "achievement_id": "string",
+          "achievement_name": "string",
+          "achievement_description": "string",
+          "category": "string (trading|game|social|learning)",
+          "tier": "string (bronze|silver|gold|platinum)",
+          "points": "number",
+          "icon_url": "string",
+          "unlocked_at": "datetime",
+          "progress": {
+            "current": "number",
+            "target": "number",
+            "percentage": "number"
+          },
+          "requirements": "array of requirement objects",
+          "rewards": {
+            "xp": "number",
+            "badges": "array of strings",
+            "unlocks": "array of strings"
+          }
+        }
+      },
+      {
+        "name": "badges",
+        "description": "User badges and recognition",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "badge_id": "string",
+          "badge_name": "string",
+          "badge_description": "string",
+          "category": "string (performance|social|learning|special)",
+          "rarity": "string (common|uncommon|rare|epic|legendary)",
+          "icon_url": "string",
+          "color": "string",
+          "earned_at": "datetime",
+          "display_order": "number",
+          "is_featured": "boolean",
+          "criteria": "object (criteria for earning the badge)"
+        }
+      },
+      {
+        "name": "leaderboard",
+        "description": "Global and category leaderboards",
+        "partition_key": "/category",
+        "schema": {
+          "category": "string (global|stocks|crypto|forex|mixed)",
+          "period": "string (daily|weekly|monthly|yearly|all_time)",
+          "user_id": "string",
+          "username": "string",
+          "display_name": "string",
+          "avatar_url": "string",
+          "rank": "number",
+          "score": "number",
+          "total_return": "number",
+          "sharpe_ratio": "number",
+          "max_drawdown": "number",
+          "win_rate": "number",
+          "trades_count": "number",
+          "tier": "string",
+          "badges": "array of strings",
+          "portfolio_value": "number",
+          "last_updated": "datetime",
+          "metadata": {
+            "game_session_id": "string",
+            "portfolio_id": "string",
+            "asset_class": "string",
+            "time_period": "string"
+          }
+        }
+      },
+      {
+        "name": "game_sessions",
+        "description": "Game sessions and competitions",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "session_id": "string",
+          "game_type": "string (historical|tournament|vs_ai|challenge)",
+          "game_name": "string",
+          "status": "string (active|completed|paused|cancelled)",
+          "settings": {
+            "initial_capital": "number",
+            "max_positions": "number",
+            "time_limit": "number",
+            "asset_classes": "array of strings",
+            "difficulty": "string (easy|medium|hard|expert)"
+          },
+          "historical_context": {
+            "start_date": "datetime",
+            "end_date": "datetime",
+            "market_conditions": "string",
+            "major_events": "array of strings"
+          },
+          "performance": {
+            "final_value": "number",
+            "total_return": "number",
+            "sharpe_ratio": "number",
+            "max_drawdown": "number",
+            "win_rate": "number",
+            "final_rank": "number"
+          },
+          "opponents": "array of opponent objects",
+          "rewards": {
+            "xp_gained": "number",
+            "badges_earned": "array of strings",
+            "achievements_unlocked": "array of strings"
+          },
+          "started_at": "datetime",
+          "completed_at": "datetime",
+          "created_at": "datetime"
+        }
+      },
+      {
+        "name": "chat_sessions",
+        "description": "AI chatbot conversation sessions",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "session_id": "string",
+          "session_type": "string (general|signal_explanation|education|support)",
+          "context": {
+            "current_page": "string",
+            "current_signal_id": "string",
+            "portfolio_id": "string",
+            "game_session_id": "string",
+            "user_tier": "string"
+          },
+          "messages": "array of message objects",
+          "status": "string (active|ended|archived)",
+          "started_at": "datetime",
+          "ended_at": "datetime",
+          "message_count": "number",
+          "user_satisfaction": "number (1-5)",
+          "ai_model_used": "string",
+          "total_tokens": "number",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      {
+        "name": "chat_messages",
+        "description": "Individual chat messages",
+        "partition_key": "/session_id",
+        "schema": {
+          "session_id": "string",
+          "message_id": "string",
+          "message_type": "string (user|assistant|system)",
+          "content": "string",
+          "timestamp": "datetime",
+          "metadata": {
+            "ai_model": "string",
+            "response_time_ms": "number",
+            "tokens_used": "number",
+            "confidence_score": "number",
+            "tools_used": "array of strings",
+            "context_data": "object"
+          },
+          "user_feedback": {
+            "rating": "number (1-5)",
+            "feedback_text": "string",
+            "is_helpful": "boolean"
+          },
+          "created_at": "datetime"
+        }
+      },
+      {
+        "name": "notifications",
+        "description": "User notifications and alerts",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "notification_id": "string",
+          "type": "string (signal|game|achievement|system|social)",
+          "title": "string",
+          "message": "string",
+          "data": "object (additional notification data)",
+          "priority": "string (low|medium|high|urgent)",
+          "status": "string (unread|read|archived)",
+          "is_push_enabled": "boolean",
+          "is_email_enabled": "boolean",
+          "created_at": "datetime",
+          "read_at": "datetime",
+          "expires_at": "datetime"
+        }
+      },
+      {
+        "name": "user_friends",
+        "description": "User social connections and friendships",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "friend_id": "string",
+          "friend_username": "string",
+          "friend_display_name": "string",
+          "friend_avatar_url": "string",
+          "status": "string (pending|accepted|blocked)",
+          "relationship_type": "string (friend|mentor|student)",
+          "created_at": "datetime",
+          "accepted_at": "datetime",
+          "last_interaction": "datetime"
+        }
+      },
+      {
+        "name": "tournaments",
+        "description": "Tournament and competition information",
+        "partition_key": "/tournament_id",
+        "schema": {
+          "tournament_id": "string",
+          "name": "string",
+          "description": "string",
+          "type": "string (daily|weekly|monthly|special)",
+          "status": "string (upcoming|active|completed|cancelled)",
+          "settings": {
+            "entry_fee": "number",
+            "prize_pool": "number",
+            "max_participants": "number",
+            "duration_days": "number",
+            "asset_classes": "array of strings",
+            "difficulty": "string"
+          },
+          "schedule": {
+            "start_date": "datetime",
+            "end_date": "datetime",
+            "registration_deadline": "datetime"
+          },
+          "participants": "array of participant objects",
+          "leaderboard": "array of leaderboard entry objects",
+          "prizes": "array of prize objects",
+          "rules": "array of rule objects",
+          "created_by": "string",
+          "created_at": "datetime",
+          "updated_at": "datetime"
+        }
+      },
+      {
+        "name": "learning_progress",
+        "description": "User learning progress and educational content",
+        "partition_key": "/user_id",
+        "schema": {
+          "user_id": "string",
+          "topic_id": "string",
+          "topic_name": "string",
+          "category": "string (trading|analysis|risk_management|economics)",
+          "difficulty": "string (beginner|intermediate|advanced)",
+          "progress": {
+            "completed_lessons": "number",
+            "total_lessons": "number",
+            "completion_percentage": "number",
+            "time_spent_minutes": "number"
+          },
+          "scores": {
+            "quiz_scores": "array of numbers",
+            "average_score": "number",
+            "best_score": "number"
+          },
+          "badges_earned": "array of strings",
+          "certificates": "array of certificate objects",
+          "started_at": "datetime",
+          "last_accessed": "datetime",
+          "completed_at": "datetime"
+        }
+      }
+    ]
+  },
+  "sample_documents": {
+    "users": {
+      "id": "user_12345",
+      "email": "john.doe@example.com",
+      "username": "johndoe",
+      "display_name": "John Doe",
+      "avatar_url": "https://example.com/avatars/john.jpg",
+      "tier": "gold",
+      "xp": 12500,
+      "level": 15,
+      "created_at": "2024-01-15T10:30:00Z",
+      "last_login": "2024-01-20T14:22:00Z",
+      "is_active": true,
+      "subscription_status": "premium",
+      "preferences": {
+        "theme": "dark",
+        "notifications": true,
+        "risk_tolerance": "moderate",
+        "language": "en",
+        "timezone": "UTC"
+      }
+    },
+    "achievements": {
+      "user_id": "user_12345",
+      "achievement_id": "first_trade",
+      "achievement_name": "First Trade",
+      "achievement_description": "Completed your first trade",
+      "category": "trading",
+      "tier": "bronze",
+      "points": 100,
+      "icon_url": "https://example.com/icons/first_trade.png",
+      "unlocked_at": "2024-01-16T09:15:00Z",
+      "progress": {
+        "current": 1,
+        "target": 1,
+        "percentage": 100
+      },
+      "requirements": [
+        {
+          "type": "trade_count",
+          "value": 1
+        }
+      ],
+      "rewards": {
+        "xp": 100,
+        "badges": ["first_trader"],
+        "unlocks": ["advanced_charts"]
+      }
+    },
+    "leaderboard": {
+      "category": "global",
+      "period": "monthly",
+      "user_id": "user_12345",
+      "username": "johndoe",
+      "display_name": "John Doe",
+      "avatar_url": "https://example.com/avatars/john.jpg",
+      "rank": 15,
+      "score": 87.5,
+      "total_return": 12.3,
+      "sharpe_ratio": 1.8,
+      "max_drawdown": -5.2,
+      "win_rate": 68.5,
+      "trades_count": 45,
+      "tier": "gold",
+      "badges": ["consistent_performer", "risk_manager"],
+      "portfolio_value": 12500.00,
+      "last_updated": "2024-01-20T14:22:00Z",
+      "metadata": {
+        "game_session_id": "session_789",
+        "portfolio_id": "portfolio_456",
+        "asset_class": "mixed",
+        "time_period": "30_days"
+      }
+    }
+  }
+}

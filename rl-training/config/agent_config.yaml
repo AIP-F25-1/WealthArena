@@ -1,0 +1,173 @@
+metadata:
+  description: >
+    Configuration for PPO asset-class agents, SAC meta-controller, and CQL
+    offline pretraining pipeline.
+  updated: 2025-10-08
+
+ppo_agents:
+  defaults:
+    algorithm: PPO
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    learning_rate: 3.0e-4
+    batch_size: 2048
+    minibatch_size: 64
+    n_epochs: 10
+    entropy_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    normalize_advantage: true
+    reward_config:
+      return_weight: 1.0
+      sharpe_penalty: 0.1
+      drawdown_penalty: 0.2
+      turnover_penalty: 0.05
+      transaction_cost_bps: 10
+    policy_network:
+      hidden_layers: [256, 256]
+      activation: tanh
+      layer_norm: true
+  asset_classes:
+    stocks:
+      observation_features:
+        - price_indicators
+        - volume_indicators
+        - sentiment_features
+        - macro_features
+        - position_context
+      action_space: continuous
+      action_bounds: [-1.0, 1.0]
+      reward_weights:
+        sector_neutrality_penalty: 0.05
+      timesteps: 1_000_000
+      eval_interval: 50_000
+      checkpoint_interval: 100_000
+    forex:
+      observation_features:
+        - price_indicators
+        - macro_features
+        - sentiment_features
+        - currency_context
+      action_space: continuous
+      leverage_limit: 10.0
+      reward_weights:
+        overnight_penalty: 0.02
+      timesteps: 800_000
+    crypto:
+      observation_features:
+        - price_indicators
+        - volume_indicators
+        - sentiment_features
+        - macro_features
+        - on_chain_features
+      action_space: continuous
+      leverage_limit: 3.0
+      reward_weights:
+        volatility_penalty: 0.1
+      timesteps: 1_200_000
+    etfs:
+      observation_features:
+        - price_indicators
+        - volume_indicators
+        - macro_features
+        - correlation_features
+      action_space: continuous
+      timesteps: 900_000
+    commodities:
+      observation_features:
+        - price_indicators
+        - macro_features
+        - seasonal_features
+        - sentiment_features
+      action_space: continuous
+      timesteps: 900_000
+    options:
+      observation_features:
+        - price_indicators
+        - option_greeks
+        - implied_volatility
+        - skew_features
+        - macro_features
+      action_space: discrete
+      discrete_actions:
+        - short
+        - flat
+        - long
+      timesteps: 700_000
+      reward_weights:
+        theta_decay_penalty: 0.05
+
+sac_meta_controller:
+  algorithm: SAC
+  gamma: 0.99
+  tau: 0.005
+  learning_rate: 3.0e-4
+  batch_size: 256
+  buffer_size: 1_000_000
+  target_entropy: "auto"
+  action_bounds: [0.0, 1.0]
+  leverage_limit: 1.5
+  reward_config:
+    return_weight: 1.0
+    cvar_penalty: 0.3
+    drawdown_penalty: 0.25
+    turnover_penalty: 0.1
+    transaction_cost_bps: 5
+  observation_features:
+    - aggregated_agent_returns
+    - aggregated_agent_confidence
+    - macro_features
+    - covariance_summaries
+    - regime_probabilities
+    - portfolio_state
+  policy_network:
+    actor_hidden_layers: [256, 256, 128]
+    critic_hidden_layers: [512, 512, 256]
+    activation: relu
+    layer_norm: true
+  training:
+    total_timesteps: 1_000_000
+    evaluation_interval: 25_000
+    checkpoint_interval: 50_000
+    replay_start_size: 10_000
+
+cql_pretraining:
+  enabled: true
+  alpha: 1.0
+  dataset:
+    source: ./data/gold/training_sets
+    include_periods:
+      - {start: "2007-01-01", end: "2011-12-31"}  # GFC stress
+      - {start: "2018-01-01", end: "2020-12-31"}  # COVID period
+    behaviors:
+      - name: mean_variance_policy
+        description: Historical mean-variance optimized allocations
+      - name: risk_parity_policy
+        description: Risk-parity baseline allocations
+  safety_constraints:
+    max_drawdown: 0.25
+    max_position_size: 0.2
+    max_sector_weight: 0.35
+  evaluation:
+    metrics:
+      - sharpe_ratio
+      - max_drawdown
+      - turnover
+    stress_tests:
+      - name: 2008_crisis
+        start: "2008-08-01"
+        end: "2009-06-30"
+      - name: covid_crash
+        start: "2020-02-01"
+        end: "2020-05-01"
+
+logging:
+  wandb:
+    project: agentic-rl-trading
+    entity: YOUR_WANDB_ENTITY
+    enable: true
+  tensorboard:
+    log_dir: ./experiments/tensorboard
+  checkpoint_dir: ./models/checkpoints
+  evaluation_dir: ./results/backtests

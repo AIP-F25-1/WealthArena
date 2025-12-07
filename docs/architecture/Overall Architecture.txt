@@ -1,0 +1,231 @@
+WEALTHARENA DEMO SYSTEM - PREMIER DEMO
+│
+├─── DATA PIPELINE (Airflow)
+│    │
+│    ├── DAG 1: fetch_market_data (For training Model)
+│    │   ├── Download from yfinance (Stocks, Currency Pairs, Commodities, Crypto, EFTs)
+│    │   ├── Validate data quality
+│    │   ├── Clean and format data
+│    │   └── Store raw data → AzureSQL (raw_market_data table)
+│    │
+│    ├── DAG 2: preprocess_data (Depends on DAG 1)
+│    │   ├── Load raw data from AzureSQL
+│    │   ├── Calculate technical indicators (50+ indicators)
+│    │   │   ├── SMA, EMA, RSI, MACD
+│    │   │   ├── Bollinger Bands, ATR
+│    │   │   ├── Stochastic, Williams %R
+│    │   │   └── Volume indicators
+│    │   ├── Feature engineering
+│    │   │   ├── Returns, Volatility
+│    │   │   ├── Momentum indicators
+│    │   │   └── Support/Resistance levels
+│    │   └── Store processed data → AzureSQL (processed_features table)
+│    │
+│    └── DAG 3: train_update_model (Depends on DAG 2)
+│        ├── Load processed data from AzureSQL
+│        ├── Prepare training dataset
+│        ├── Train/Update RL agent (incremental learning)
+│        ├── Validate model performance
+│        ├── Save model → AzureSQL (model_registry table)
+│        └── Generate model metadata (version, metrics, timestamp)
+│
+├─── MODEL SERVING (Python Service)
+│    ├── Load latest trained RL model from AzureSQL
+│    ├── Load feature data for inference
+│    ├── Generate predictions/recommendations
+│    │   ├── Buy/Sell/Hold signals
+│    │   ├── Confidence scores
+│    │   ├── Entry price recommendations
+│    │   ├── Take profit levels (TP1, TP2, TP3)
+│    │   ├── Stop loss levels
+│    │   └── Risk/Reward ratio
+│    ├── Calculate portfolio metrics
+│    │   ├── Sharpe ratio, Sortino ratio
+│    │   ├── Max drawdown
+│    │   ├── Win rate, Profit factor
+│    │   └── Risk-adjusted returns
+│    └── Expose via API endpoints
+│
+├─── BACKEND API (FastAPI)
+│    │
+│    ├── /api/market-data → Get latest market data from AzureSQL
+│    │   ├── Real-time prices
+│    │   ├── Historical OHLCV
+│    │   └── Technical indicators
+│    │
+│    ├── /api/predictions → Get model predictions
+│    │   ├── Buy/Sell/Hold signals
+│    │   ├── Confidence scores
+│    │   ├── Entry/Exit prices
+│    │   └── Risk parameters
+│    │
+│    ├── /api/top-setups → Get top 3 best trading opportunities
+│    │   ├── Filter by asset type (Stocks/FX/Commodities/Currency Pairs/Crypto/EFTs)
+│    │   ├── Rank by confidence & risk-reward
+│    │   ├── Include full setup details:
+│    │   │   ├── Entry price
+│    │   │   ├── Take Profit 1, 2, 3
+│    │   │   ├── Stop Loss
+│    │   │   ├── Position size recommendation
+│    │   │   └── Risk percentage
+│    │   └── Return top 3 setups
+│    │
+│    ├── /api/portfolio → Get portfolio status
+│    │   ├── Current holdings
+│    │   ├── P&L by asset
+│    │   ├── Total portfolio value
+│    │   └── Performance metrics
+│    │
+│    ├── /api/metrics → Get performance metrics
+│    │   ├── Overall system performance
+│    │   ├── Model accuracy stats
+│    │   ├── Trade statistics
+│    │   └── Risk metrics
+│    │
+│    ├── /api/chat → Connect to RAG chatbot
+│    │   ├── Receive user questions
+│    │   ├── Get model context
+│    │   ├── Generate explanations
+│    │   └── Return educational responses
+│    │
+│    └── /api/game → Game state & leaderboard
+│        ├── Start/End game sessions
+│        ├── Execute trades
+│        ├── Track performance
+│        └── Update rankings
+│
+├─── CHATBOT (RAG System)
+│    │
+│    ├── Vector Database (Chroma/Pinecone)
+│    │   ├── Financial knowledge base
+│    │   │   ├── Trading concepts
+│    │   │   ├── Risk management principles
+│    │   │   ├── Technical analysis guide
+│    │   │   └── Market terminology
+│    │   ├── Model explanations
+│    │   │   ├── How RL model works
+│    │   │   ├── Feature importance
+│    │   │   ├── Decision logic
+│    │   │   └── Confidence calculation
+│    │   └── Trading signals context
+│    │       ├── Current predictions
+│    │       ├── Indicator values
+│    │       ├── Market conditions
+│    │       └── Historical performance
+│    │
+│    └── LLM (GroQ / Local)
+│        ├── Retrieve relevant context from Vector DB
+│        ├── Augment with current model state
+│        ├── Generate natural language explanations
+│        │   ├── "Why buy AAPL now?"
+│        │   ├── "What is RSI and why does it matter?"
+│        │   ├── "How to set stop loss?"
+│        │   └── "Explain this trade setup"
+│        └── Return educational, actionable responses
+│
+├─── GAME ENGINE (Optional - If Time Permits)
+│    ├── Historical data replay mechanism
+│    │   ├── Load historical period (3-6 months)
+│    │   ├── Day-by-day progression
+│    │   └── Fast-forward capability
+│    ├── User vs Agent competition
+│    │   ├── User makes trades
+│    │   ├── Agent makes parallel trades
+│    │   └── Compare strategies
+│    ├── Leaderboard tracking
+│    │   ├── Calculate final scores
+│    │   ├── Rank by Sharpe ratio
+│    │   └── Store in AzureSQL (leaderboard table)
+│    └── Risk management simulation
+│        ├── Enforce position limits
+│        ├── Calculate margin requirements
+│        └── Implement stop-loss automation
+│
+└─── FRONTEND (React/Expo)
+     │
+     ├── Dashboard Page
+     │   ├── Portfolio Overview Panel
+     │   │   ├── Total portfolio value
+     │   │   ├── Today's P&L
+     │   │   ├── Asset allocation pie chart
+     │   │   └── Performance metrics
+     │   ├── Performance Charts
+     │   │   ├── Equity curve (portfolio value over time)
+     │   │   ├── Drawdown chart
+     │   │   └── Returns distribution
+     │   └── Quick Stats Cards
+     │       ├── Sharpe Ratio
+     │       ├── Max Drawdown
+     │       ├── Win Rate
+     │       └── Total Return %
+     │
+     ├── Trading Opportunities Page (TOP 3 SETUPS)
+     │   ├── Asset Type Toggle
+     │   │   ├── [Stocks]
+     │   │   ├── [Currency Pairs]
+     │   │   ├── [Commodities]
+     │   │   ├── [Crypto]
+     │   │   └── [EFTs]
+     │   │
+     │   └── For Each Asset Type, Display Top 3:
+     │       │
+     │       ├── Setup Card #1 (Highest Confidence)
+     │       │   ├── Symbol & Name (e.g., "AAPL - Apple Inc.")
+     │       │   ├── Current Price
+     │       │   ├── Signal Badge (BUY/SELL with color)
+     │       │   ├── Confidence Score (e.g., 87%)
+     │       │   ├── Price Chart (last 30 days with indicators)
+     │       │   │   ├── Candlestick chart
+     │       │   │   ├── SMA/EMA overlays
+     │       │   │   ├── Entry point marker
+     │       │   │   └── TP/SL level lines
+     │       │   ├── Trade Setup Details:
+     │       │   │   ├── 📍 Entry Price: $175.50
+     │       │   │   ├── 🎯 Take Profit 1: $180.00 (2.5%)
+     │       │   │   ├── 🎯 Take Profit 2: $185.00 (5.4%)
+     │       │   │   ├── 🎯 Take Profit 3: $190.00 (8.2%)
+     │       │   │   ├── 🛑 Stop Loss: $171.00 (-2.5%)
+     │       │   │   ├── 📊 Risk/Reward Ratio: 1:3.2
+     │       │   │   └── 💰 Suggested Position Size: 5% of portfolio
+     │       │   ├── Key Indicators:
+     │       │   │   ├── RSI: 45 (Neutral)
+     │       │   │   ├── MACD: Bullish crossover
+     │       │   │   ├── Volume: Above average
+     │       │   │   └── Trend: Uptrend confirmed
+     │       │   └── Model Reasoning (from RAG)
+     │       │       └── Brief explanation of why this setup
+     │       │
+     │       ├── Setup Card #2 (Second Best)
+     │       │   └── [Same structure as above]
+     │       │
+     │       └── Setup Card #3 (Third Best)
+     │           └── [Same structure as above]
+     │
+     ├── Game Interface Page (Mockup if no time)
+     │   ├── Episode Selection
+     │   │   ├── Available historical periods
+     │   │   └── Difficulty level
+     │   ├── Game Canvas
+     │   │   ├── Historical data replay
+     │   │   ├── Trade execution panel
+     │   │   ├── Real-time P&L tracker
+     │   │   └── Agent performance comparison
+     │   └── Leaderboard Panel
+     │       ├── Top players ranking
+     │       ├── Performance metrics
+     │       └── Achievement badges
+     │
+     └── Chatbot UI (Sidebar/Modal)
+         ├── Chat Interface
+         │   ├── Message input box
+         │   ├── Conversation history
+         │   └── Suggested questions
+         ├── Context-Aware Features
+         │   ├── "Explain this setup" button on trade cards
+         │   ├── "Why this signal?" quick action
+         │   └── Auto-suggestions based on page context
+         └── Educational Mode
+             ├── Trading terminology lookup
+             ├── Indicator explanations
+             ├── Indicator explanations
+             └── Strategy Lab (tutorials) - Free API to get latest strategies

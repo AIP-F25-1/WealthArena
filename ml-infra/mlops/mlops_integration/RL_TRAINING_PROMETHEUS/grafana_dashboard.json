@@ -1,0 +1,389 @@
+{
+  "dashboard": {
+    "title": "RL Training - Comprehensive Metrics",
+    "tags": ["rl_training", "wealtharena", "training", "reinforcement_learning"],
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Training Runs Total",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rl_training_runs_total{})",
+            "legendFormat": "Total Runs",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Training",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rl_training_active{})",
+            "legendFormat": "Active",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Training Iterations",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rl_training_iterations_total{})",
+            "legendFormat": "Total Iterations",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Episodes Total",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rl_training_episodes_total{})",
+            "legendFormat": "Total Episodes",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Episode Reward Mean (Current)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "rl_training_episode_reward_mean{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{run_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Episode Length Mean (Current)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "rl_training_episode_length_mean{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{run_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Current Iteration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "rl_training_current_iteration{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{run_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Sharpe Ratio",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "rl_training_sharpe_ratio{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{agent_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Max Drawdown",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "rl_training_max_drawdown{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{agent_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Win Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "rl_training_win_rate{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{agent_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Total Return",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "rl_training_total_return{algorithm=~\"$algorithm\"}",
+            "legendFormat": "{{algorithm}} - {{agent_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Training Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "targets": [
+          {
+            "expr": "rate(rl_training_duration_seconds_sum{algorithm=~\"$algorithm\"}[5m])",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "Episode Reward Distribution",
+        "type": "heatmap",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+        "targets": [
+          {
+            "expr": "sum(rate(rl_training_episode_reward_bucket{algorithm=~\"$algorithm\"}[5m])) by (le)",
+            "legendFormat": "{{le}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "spectrum"}
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Policy Loss",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+        "targets": [
+          {
+            "expr": "rate(rl_training_policy_loss_sum{algorithm=~\"$algorithm\"}[5m]) / rate(rl_training_policy_loss_count{algorithm=~\"$algorithm\"}[5m])",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 15,
+        "title": "Value Loss",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 44},
+        "targets": [
+          {
+            "expr": "rate(rl_training_value_loss_sum{algorithm=~\"$algorithm\"}[5m]) / rate(rl_training_value_loss_count{algorithm=~\"$algorithm\"}[5m])",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 16,
+        "title": "Entropy (Exploration)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 44},
+        "targets": [
+          {
+            "expr": "rate(rl_training_entropy_sum{algorithm=~\"$algorithm\"}[5m]) / rate(rl_training_entropy_count{algorithm=~\"$algorithm\"}[5m])",
+            "legendFormat": "{{algorithm}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 17,
+        "title": "Training Errors",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 52},
+        "targets": [
+          {
+            "expr": "sum(rate(rl_training_errors_total{algorithm=~\"$algorithm\"}[5m])) by (error_type)",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 18,
+        "title": "Environment Steps Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 52},
+        "targets": [
+          {
+            "expr": "sum(rate(rl_training_environment_steps_total{algorithm=~\"$algorithm\"}[5m]))",
+            "legendFormat": "Steps/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "ops"
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "algorithm",
+          "type": "query",
+          "query": "label_values(rl_training_runs_total, algorithm)",
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "includeAll": true,
+          "multi": true,
+          "allValue": ".*"
+        }
+      ]
+    }
+  }
+}
+

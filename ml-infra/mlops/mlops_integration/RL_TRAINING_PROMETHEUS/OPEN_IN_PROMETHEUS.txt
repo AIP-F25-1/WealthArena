@@ -1,0 +1,118 @@
+METRICS ARE NOW AVAILABLE IN PROMETHEUS!
+========================================
+
+✅ Metrics server is RUNNING
+✅ Prometheus target is UP
+✅ Metrics are being scraped
+
+═══════════════════════════════════════════════════════════════
+QUICK ACCESS - COPY THESE LINKS TO VIEW METRICS
+═══════════════════════════════════════════════════════════════
+
+PROMETHEUS MAIN PAGE:
+http://127.0.0.1:9090
+
+PROMETHEUS TARGETS (Check status):
+http://127.0.0.1:9090/targets
+
+═══════════════════════════════════════════════════════════════
+DIRECT LINKS TO VIEW METRICS (Click to open)
+═══════════════════════════════════════════════════════════════
+
+1. TOTAL TRAINING RUNS:
+http://127.0.0.1:9090/graph?g0.expr=sum(rl_training_runs_total{})&g0.tab=0
+
+2. TRAINING RUNS BY ALGORITHM:
+http://127.0.0.1:9090/graph?g0.expr=sum%20by%20(algorithm)%20(rl_training_runs_total{})&g0.tab=0
+
+3. ACTIVE TRAINING:
+http://127.0.0.1:9090/graph?g0.expr=sum(rl_training_active{})&g0.tab=0
+
+4. EPISODE REWARD (Graph):
+http://127.0.0.1:9090/graph?g0.expr=rl_training_episode_reward_mean{}&g0.tab=0
+
+5. SHARPE RATIO (All Agents):
+http://127.0.0.1:9090/graph?g0.expr=rl_training_sharpe_ratio{}&g0.tab=0
+
+6. WIN RATE (All Agents):
+http://127.0.0.1:9090/graph?g0.expr=rl_training_win_rate{}&g0.tab=0
+
+7. TOTAL RETURN (All Agents):
+http://127.0.0.1:9090/graph?g0.expr=rl_training_total_return{}&g0.tab=0
+
+8. CURRENT ITERATION:
+http://127.0.0.1:9090/graph?g0.expr=rl_training_current_iteration{}&g0.tab=0
+
+9. TOTAL EPISODES:
+http://127.0.0.1:9090/graph?g0.expr=sum(rl_training_episodes_total{})&g0.tab=0
+
+10. EPISODES BY AGENT:
+http://127.0.0.1:9090/graph?g0.expr=sum%20by%20(agent_id)%20(rl_training_episodes_total{})&g0.tab=0
+
+11. MAX DRAWDOWN:
+http://127.0.0.1:9090/graph?g0.expr=rl_training_max_drawdown{}&g0.tab=0
+
+12. TOTAL ITERATIONS:
+http://127.0.0.1:9090/graph?g0.expr=sum(rl_training_iterations_total{})&g0.tab=0
+
+═══════════════════════════════════════════════════════════════
+OR MANUALLY ENTER QUERIES IN PROMETHEUS
+═══════════════════════════════════════════════════════════════
+
+Go to: http://127.0.0.1:9090
+
+Then copy/paste these queries:
+
+FOR ALL MODELS:
+  sum(rl_training_runs_total{})
+  rl_training_episode_reward_mean{}
+  rl_training_sharpe_ratio{}
+  rl_training_win_rate{}
+  rl_training_total_return{}
+  rl_training_current_iteration{}
+  sum(rl_training_episodes_total{})
+  sum(rl_training_iterations_total{})
+
+BY ALGORITHM:
+  sum by (algorithm) (rl_training_runs_total{})
+  avg by (algorithm) (rl_training_sharpe_ratio{})
+  sum by (algorithm) (rl_training_iterations_total{})
+
+BY AGENT:
+  rl_training_sharpe_ratio{}
+  rl_training_win_rate{}
+  sum by (agent_id) (rl_training_episodes_total{})
+
+SPECIFIC ALGORITHM (PPO):
+  rl_training_episode_reward_mean{algorithm="PPO"}
+  rl_training_sharpe_ratio{algorithm="PPO"}
+  rl_training_current_iteration{algorithm="PPO"}
+
+SPECIFIC AGENT (Agent 0):
+  rl_training_sharpe_ratio{agent_id="agent_0"}
+  rl_training_win_rate{agent_id="agent_0"}
+  rl_training_total_return{agent_id="agent_0"}
+
+COMBINED (PPO + Agent 0):
+  rl_training_sharpe_ratio{algorithm="PPO", agent_id="agent_0"}
+
+═══════════════════════════════════════════════════════════════
+TO VIEW GRAPHS
+═══════════════════════════════════════════════════════════════
+
+1. Enter query in Prometheus
+2. Click "Execute"
+3. Click "Graph" tab (not "Table")
+4. Set time range: "Last 1 hour"
+5. You should see graphs with data!
+
+═══════════════════════════════════════════════════════════════
+IMPORTANT
+═══════════════════════════════════════════════════════════════
+
+Keep the metrics server window OPEN!
+If you close it, metrics will disappear from Prometheus.
+
+The server is running in a separate window.
+Check: http://localhost:8011/metrics to verify it's running.
+

@@ -1,0 +1,33 @@
+{
+  "download_date": "2025-11-13T10:43:30.413711",
+  "num_symbols": 22,
+  "category": "All",
+  "date_range": {
+    "start": "2022-01-01",
+    "end": "2025-01-01"
+  },
+  "symbols": [
+    "ALI=F",
+    "BZ=F",
+    "CC=F",
+    "CL=F",
+    "CT=F",
+    "GC=F",
+    "HE=F",
+    "HG=F",
+    "HO=F",
+    "KC=F",
+    "LE=F",
+    "LED=F",
+    "NG=F",
+    "PA=F",
+    "PL=F",
+    "RB=F",
+    "SB=F",
+    "SI=F",
+    "ZC=F",
+    "ZN=F",
+    "ZS=F",
+    "ZW=F"
+  ]
+}

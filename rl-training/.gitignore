@@ -1,0 +1,107 @@
+# Environment & secrets
+.env
+.env.*
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+.venv/**
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local secrets
+automation/config/api_keys.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Logs & temp
+*.log
+logs/
+tmp/
+temp/
+
+# Data artifacts
+data/bronze/
+data/silver/
+data/gold/
+data/catalog/
+data/audit/
+
+# Models & experiments
+models/
+experiments/*/checkpoints/
+experiments/*/logs/
+results/
+wandb/
+
+# Jupyter
+.ipynb_checkpoints/
+!docs/notebooks/**/*.ipynb
+
+# LaTeX
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.synctex.gz
+paper/*.pdf
+
+# BentoML / deployments
+bento/
+bentoml/
+
+# Ray
+ray_results/
+
+# Node/npm (if any)
+node_modules/
+
+# Instructions
+# For large binary artifacts (trained weights, datasets) consider Git LFS or external storage.
+
+# Automation artifacts (keep scripts, exclude outputs)
+automation/checkpoints/
+automation/logs/
+automation/metrics/
+automation/reports/
+automation/helpers/__pycache__/
+!automation/reports/public/
+!automation/reports/public/**
+
+# Progress reports
+CLIFFORD_PROGRESS_REPORT_SECTIONS.txt
+CLIFFORD_SECTIONS_FOR_PROGRESS_REPORT.md
+PROGRESS_REPORT_CLIFFORD.md
+
+# Test outputs
+test_report.json
+test_report.xml
+.coverage.json
+pylint-report.txt
+flake8-report.txt
+
+# SonarQube
+.scannerwork/
+sonar-report.json
+
+# Notebook execution outputs
+docs/notebooks/executed/

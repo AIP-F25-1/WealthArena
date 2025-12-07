@@ -1,0 +1,36 @@
+{
+  "download_date": "2025-11-02T19:04:56.956439Z",
+  "base_currency": "AUD",
+  "num_pairs": 15,
+  "successful": 15,
+  "failed": 0,
+  "date_range": {
+    "start": "2022-11-01",
+    "end": "2025-11-02"
+  },
+  "files": {
+    "AUDUSD": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDUSD_fx_raw.csv",
+    "AUDJPY": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDJPY_fx_raw.csv",
+    "AUDEUR": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDEUR_fx_raw.csv",
+    "AUDCNY": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDCNY_fx_raw.csv",
+    "AUDCHF": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDCHF_fx_raw.csv",
+    "AUDGBP": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDGBP_fx_raw.csv",
+    "AUDCAD": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDCAD_fx_raw.csv",
+    "AUDNZD": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDNZD_fx_raw.csv",
+    "AUDINR": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDINR_fx_raw.csv",
+    "AUDKRW": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDKRW_fx_raw.csv",
+    "AUDSEK": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDSEK_fx_raw.csv",
+    "AUDSGD": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDSGD_fx_raw.csv",
+    "AUDNOK": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDNOK_fx_raw.csv",
+    "AUDHKD": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDHKD_fx_raw.csv",
+    "AUDBRL": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw\\AUDBRL_fx_raw.csv"
+  },
+  "errors": {},
+  "output_dir": "C:\\Users\\amrut\\OneDrive\\Desktop\\WealthArena\\forexData\\data\\forex\\raw",
+  "bridges": [
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY"
+  ]
+}

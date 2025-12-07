@@ -1,0 +1,36 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{setspace}
+\usepackage[style=apa]{biblatex}
+\addbibresource{references.bib}
+
+\title{Multi-Asset Multi-Agent Reinforcement Learning Trading System with Hierarchical Portfolio Optimization}
+\author{Agentic RL Research Group}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a hierarchical reinforcement learning framework for multi-asset trading that fuses per-asset PPO agents with a SAC meta-controller for portfolio allocation. Our system integrates a Bronze/Silver/Gold medallion data pipeline, multi-source sentiment analysis, conservative Q-learning pretraining, and comprehensive backtesting infrastructure, delivering robust performance across equities, ETFs, commodities, options, forex, and cryptocurrencies.
+\end{abstract}
+
+\input{sections/methodology}
+\input{sections/experiments}
+\input{sections/results}
+
+\input{appendix}
+
+\printbibliography
+
+\end{document}
+

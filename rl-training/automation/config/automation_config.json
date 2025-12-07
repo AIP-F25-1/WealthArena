@@ -1,0 +1,127 @@
+{
+  "project": {
+    "name": "WealthArena Agentic RL Trading System",
+    "author": "Clifford Addison",
+    "year": 2025,
+    "company": "WealthArena",
+    "version": "1.0.0"
+  },
+  "git": {
+    "repository": "https://github.com/AIP-F25-1/WealthArena.git",
+    "branch": "rl",
+    "commit_message_min_words": 3,
+    "commit_message_max_words": 20,
+    "auto_push": true,
+    "push_retry_attempts": 3,
+    "push_retry_delay_seconds": 5
+  },
+  "checkpoint": {
+    "directory": "automation/checkpoints",
+    "max_checkpoints_to_keep": 5,
+    "auto_cleanup": true,
+    "backup_before_cleanup": true
+  },
+  "logging": {
+    "log_file": "automation/logs/automation_log.txt",
+    "error_log_file": "automation/logs/automation_errors.txt",
+    "log_level": "INFO",
+    "max_log_size_mb": 100,
+    "log_rotation": true
+  },
+  "metrics": {
+    "collect_after_each_phase": true,
+    "metrics_directory": "automation/metrics",
+    "aggregate_metrics_file": "automation/metrics/aggregate_metrics.json"
+  },
+  "reports": {
+    "directory": "automation/reports",
+    "generate_after_each_phase": false,
+    "generate_final_report": true,
+    "include_charts": false
+  },
+  "api_keys": {
+    "instructions": "Add required credentials to .env or automation/config/api_keys.local.json before continuing. Press Redo once keys are available."
+  },
+  "execution": {
+    "conda_env_name": null,
+    "python_executable": ".venv\\Scripts\\python.exe",
+    "retry_attempts": 3,
+    "retry_delay_seconds": 10,
+    "continue_on_error": false,
+    "dry_run": false
+  },
+  "phases": {
+    "phase1": {
+      "name": "Data Infrastructure",
+      "enabled": true,
+      "estimated_time_hours": 40
+    },
+    "phase2": {
+      "name": "Feature Engineering",
+      "enabled": true,
+      "estimated_time_hours": 30
+    },
+    "phase3": {
+      "name": "PPO Agents Training",
+      "enabled": true,
+      "estimated_time_hours": 60
+    },
+    "phase4": {
+      "name": "SAC Meta-Controller",
+      "enabled": true,
+      "estimated_time_hours": 40
+    },
+    "phase5": {
+      "name": "Strategy Library & Orchestration",
+      "enabled": true,
+      "estimated_time_hours": 20
+    },
+    "phase6": {
+      "name": "Backtesting & Evaluation",
+      "enabled": true,
+      "estimated_time_hours": 30
+    },
+    "phase7": {
+      "name": "Execution & Market Simulation",
+      "enabled": true,
+      "estimated_time_hours": 20
+    },
+    "phase8": {
+      "name": "Training & Experimentation (Ray)",
+      "enabled": true,
+      "estimated_time_hours": 50
+    },
+    "phase9": {
+      "name": "Model Serving & Deployment",
+      "enabled": true,
+      "estimated_time_hours": 25
+    },
+    "phase10": {
+      "name": "Final Integration & Testing",
+      "enabled": true,
+      "estimated_time_hours": 35
+    }
+  },
+  "sonarqube": {
+    "enabled": true,
+    "scanner_command": "sonar-scanner",
+    "wait_for_analysis": true,
+    "fail_on_quality_gate": false,
+    "project_key": "wealtharena-rl-trading",
+    "server_url": "",
+    "token_env_var": "SONAR_TOKEN",
+    "metrics": [
+      "complexity",
+      "duplicated_lines_density",
+      "code_smells",
+      "coverage"
+    ]
+  },
+  "notebooks": {
+    "execute_automatically": false,
+    "prompt_before_execution": true,
+    "notebooks_directory": "docs/notebooks",
+    "output_directory": "docs/notebooks/executed"
+  }
+}
+

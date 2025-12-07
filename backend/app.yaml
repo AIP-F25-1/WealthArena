@@ -1,0 +1,39 @@
+runtime: nodejs20
+service: default
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 5
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.60
+
+instance_class: F2
+
+env_variables:
+  NODE_ENV: "production"
+  PORT: "8080"
+  DB_HOST: "/cloudsql/wealtharena-prod:us-central1:wealtharena-db"
+  DB_NAME: "wealtharena_db"
+  DB_USER: "wealtharena_admin"
+  DB_PORT: "5432"
+  DB_TYPE: "postgres"
+  CHATBOT_API_URL: "https://chatbot-dot-wealtharena-prod.appspot.com"
+  RL_API_URL: "https://rl-service-dot-wealtharena-prod.appspot.com"
+  ALLOWED_ORIGINS: "https://wealtharena-frontend.web.app,exp://localhost:5001"
+
+secrets:
+  - variable: DB_PASSWORD
+    secret: db-password
+    version: latest
+  - variable: JWT_SECRET
+    secret: jwt-secret
+    version: latest
+
+beta_settings:
+  cloud_sql_instances: "wealtharena-prod:us-central1:wealtharena-db"
+
+handlers:
+- url: /.*
+  script: auto
+  secure: always
+

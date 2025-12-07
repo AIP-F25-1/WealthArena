@@ -1,0 +1,7 @@
+yfinance
+pandas
+pyarrow
+python-dateutil
+tenacity     # retries
+tzdata       # clean timezone handling on Windows
+prometheus_client

@@ -1,0 +1,104 @@
+HOW TO VIEW RL TRAINING METRICS IN PROMETHEUS
+==============================================
+
+PROBLEM: Prometheus shows "Empty query result" or "No data"
+
+REASON: The metrics server on port 8011 is not running.
+
+SOLUTION: Start the metrics server first!
+
+STEP 1: Start Metrics Server
+-----------------------------
+Open a NEW PowerShell or Command Prompt window and run:
+
+Option A (Windows):
+  cd mlops_integration\RL_TRAINING_PROMETHEUS
+  START_METRICS_SERVER.bat
+
+Option B (Manual):
+  cd mlops_integration\RL_TRAINING_PROMETHEUS
+  python run_metrics_server.py
+
+You should see:
+  ✅ Server started on http://localhost:8011/metrics
+  ✓ Training started
+  ✓ Iteration 1 metrics recorded
+  ... (more iterations)
+  ✅ Metrics generated successfully!
+
+KEEP THIS WINDOW OPEN - The server must keep running!
+
+STEP 2: Wait 10-15 seconds
+---------------------------
+Wait for the server to generate all test metrics.
+
+STEP 3: Verify Metrics Endpoint
+---------------------------------
+Open in browser: http://localhost:8011/metrics
+
+You should see metrics starting with:
+  # HELP rl_training_runs_total
+  # TYPE rl_training_runs_total counter
+  rl_training_runs_total{algorithm="PPO",status="started"} 1.0
+
+STEP 4: Check Prometheus Targets
+---------------------------------
+Go to: http://127.0.0.1:9090/targets
+
+Find "wealtharena_rl_training" - should show:
+  Status: UP (green)
+  Last Scrape: (recent time)
+
+STEP 5: Query Prometheus
+-------------------------
+Go to: http://127.0.0.1:9090
+
+Try these queries:
+
+1. Check if target is up:
+   up{job="wealtharena_rl_training"}
+   Should return: 1
+
+2. Total training runs:
+   sum(rl_training_runs_total{})
+
+3. Episode reward:
+   rl_training_episode_reward_mean{}
+
+4. Sharpe ratio:
+   rl_training_sharpe_ratio{}
+
+5. Current iteration:
+   rl_training_current_iteration{}
+
+6. Total episodes:
+   sum(rl_training_episodes_total{})
+
+STEP 6: View Graphs
+--------------------
+1. Enter a query (e.g., rl_training_episode_reward_mean{})
+2. Click "Graph" tab
+3. Adjust time range to "Last 1 hour"
+4. You should see a graph!
+
+TROUBLESHOOTING
+---------------
+
+If still no data:
+
+1. Make sure metrics server is running (check the window you started it in)
+2. Check port 8011 is accessible: http://localhost:8011/metrics
+3. Check Prometheus targets page - should show UP
+4. Wait 10-15 seconds after starting server
+5. Try query: up{job="wealtharena_rl_training"} first
+
+If metrics server won't start:
+- Check if port 8011 is already in use
+- Install prometheus-client: pip install prometheus-client
+- Check Python is installed: python --version
+
+IMPORTANT
+---------
+The metrics server MUST keep running while you view metrics in Prometheus.
+If you close the server window, metrics will disappear.
+

@@ -1,0 +1,227 @@
+metadata:
+  description: >
+    Data collection configuration for the Agentic Multi-Agent RL Trading System.
+    Defines asset universes, data sources, rate limits, and storage layout across
+    the Bronze/Silver/Gold medallion architecture.
+  updated: 2025-10-08
+  timezone: UTC
+
+storage:
+  data_root: ${DATA_ROOT:-./data}
+  bronze_path: ${BRONZE_PATH:-./data/bronze}
+  silver_path: ${SILVER_PATH:-./data/silver}
+  gold_path: ${GOLD_PATH:-./data/gold}
+  catalog_path: ./data/catalog
+  audit_path: ./data/audit
+
+date_ranges:
+  default:
+    start: "2015-10-01"
+    end: "2025-10-01"
+    frequency: daily
+  intraday:
+    start: "2022-01-01"
+    end: "2025-10-01"
+    frequency: "15min"
+
+assets:
+  stocks:
+    # Catalog generation workflow:
+    # - Each `universe_reference` points to a CSV file generated before running `collect_stocks.py`.
+    # - Run `python scripts/generate_stock_catalog.py --config config/data_config.yaml` to create these files.
+    # - `target_count` controls how many random stocks are sampled per sector when generating catalogs.
+    # - Generate catalogs once (or whenever you want a refreshed universe) prior to executing the stock collection step.
+    sectors:
+      technology_services:
+        target_count: 50
+        universe_reference: catalog/stocks/technology_services.csv
+      electronic_technology:
+        target_count: 50
+        universe_reference: catalog/stocks/electronic_technology.csv
+      finance:
+        target_count: 50
+        universe_reference: catalog/stocks/finance.csv
+      health_technology:
+        target_count: 50
+        universe_reference: catalog/stocks/health_technology.csv
+      energy_minerals:
+        target_count: 50
+        universe_reference: catalog/stocks/energy_minerals.csv
+      consumer:
+        target_count: 50
+        universe_reference: catalog/stocks/consumer.csv
+      industrial:
+        target_count: 50
+        universe_reference: catalog/stocks/industrial.csv
+    data_source: yfinance
+    interval: 1d
+    adjustments:
+      auto_adjust: false
+      actions: true
+
+  etfs:
+    universes:
+      sector_etfs: catalog/etfs/us_sector.csv
+      factor_etfs: catalog/etfs/us_factor.csv
+      bond_etfs: catalog/etfs/us_bond.csv
+      commodity_etfs: catalog/etfs/commodity.csv
+    target_count: 50
+    data_source: yfinance
+    interval: 1d
+
+  forex:
+    pairs:
+      majors:
+        - EURUSD
+        - USDJPY
+        - GBPUSD
+        - AUDUSD
+        - USDCHF
+        - USDCAD
+        - NZDUSD
+      crosses:
+        - EURGBP
+        - EURJPY
+        - GBPJPY
+        - AUDJPY
+        - CHFJPY
+        - EURCHF
+        - EURCAD
+        - GBPAUD
+        - USDSEK
+        - USDNOK
+    data_source: yfinance
+    interval: 1d
+
+  crypto:
+    symbols:
+      majors:
+        - BTC-USD
+        - ETH-USD
+        - BNB-USD
+        - XRP-USD
+        - ADA-USD
+        - SOL-USD
+        - DOGE-USD
+        - DOT-USD
+        - MATIC-USD
+        - LTC-USD
+      emerging_top100_reference: catalog/crypto/top100.csv
+    exchanges:
+      - binance
+      - coinbasepro
+      - kraken
+    ccxt:
+      timeframe: 1d
+      enable_rate_limit: true
+      max_trades_per_call: 1000
+
+  commodities:
+    contracts:
+      precious_metals:
+        - GC=F   # Gold
+        - SI=F   # Silver
+        - PL=F   # Platinum
+      energy:
+        - CL=F   # Crude Oil
+        - NG=F   # Natural Gas
+        - HO=F   # Heating Oil
+      agriculture:
+        - ZC=F   # Corn
+        - ZS=F   # Soybeans
+        - ZW=F   # Wheat
+      industrial_metals:
+        - HG=F   # Copper
+        - PA=F   # Palladium
+    data_source: yfinance
+    interval: 1d
+
+  options:
+    underlyings_reference: catalog/options/underlyings.csv
+    expiries:
+      lookahead_days: 90
+      max_strikes: 20
+      max_expiries: 2  # Reduced from 3 to 2 to reduce requests per symbol (options collection is heavily rate-limited)
+    data_source: yfinance
+    interval: 1d
+    # Note: Options collection is heavily rate-limited by Yahoo Finance and may require multiple runs or manual retry
+
+  news:
+    providers:
+      - benzinga
+      - financial_modeling_prep
+      - alphavantage_news
+    tickers_reference: catalog/news/symbols.csv
+    collection_frequency: "1h"
+
+  social:
+    reddit:
+      subreddits:
+        - wallstreetbets
+        - investing
+        - stocks
+        - forex
+        - cryptocurrency
+      keywords_reference: catalog/social/keywords.csv
+      start_date: "2018-01-01"
+    twitter:
+      handles_reference: catalog/social/twitter_handles.csv
+      search_window_minutes: 60
+
+  macro:
+    fred_series:
+      - DGS10        # 10-Year Treasury Constant Maturity Rate
+      - DGS2         # 2-Year Treasury Constant Maturity Rate
+      - T10Y2Y       # Yield Curve Spread
+      - CPIAUCSL     # CPI
+      - PPIACO       # PPI
+      - UNRATE       # Unemployment Rate
+      - GDPC1        # Real GDP
+      - M2SL         # Money Supply
+      - BAMLH0A0HYM2 # High Yield Spread
+      - VIXCLS       # CBOE Volatility Index
+      - FEDFUNDS     # Effective Federal Funds Rate
+      - TOTL         # Total Assets Federal Reserve
+      - NAPM         # ISM Manufacturing PMI Composite Index
+    refresh_frequency: weekly
+
+rate_limits:
+  yfinance:
+    # Conservative rate limiting for Yahoo Finance 2025 authentication requirements
+    # Yahoo Finance is more aggressive with rate limiting now, requiring curl_cffi and stricter limits
+    requests_per_second: 1  # Reduced from 2 to 1 for better reliability
+    retry_attempts: 5
+    backoff_seconds: 5  # Increased from 3 to 5 for better retry handling
+    batch_size: 25
+    min_delay_seconds: 1.0  # Increased from 0.5 to 1.0 - Minimum delay between requests (seconds). Actual delay is max(min_delay_seconds, 1/requests_per_second).
+  alphavantage:
+    requests_per_minute: 5
+    requests_per_day: 500
+  ccxt:
+    throttle_ms: 250
+  reddit:
+    requests_per_minute: 60
+  twitter:
+    requests_per_15min: 450
+  fred:
+    requests_per_minute: 120
+
+processing:
+  bronze_to_silver:
+    batch_size: 50
+    parallelism: 4
+    corporate_actions: true
+    fill_missing: forward
+    max_forward_fill: 5
+  silver_to_gold:
+    compute_technical_indicators: true
+    compute_sentiment_features: true
+    compute_macro_features: true
+    compute_correlation_features: true
+    align_cross_asset: true
+
+audit:
+  log_level: INFO
+  enable_lineage: true
+  lineage_store: ./data/audit/lineage.db
+  report_path: ./data/audit/reports

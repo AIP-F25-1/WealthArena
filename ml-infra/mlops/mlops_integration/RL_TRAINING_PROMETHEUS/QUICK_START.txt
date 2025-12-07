@@ -1,0 +1,57 @@
+RL TRAINING PROMETHEUS METRICS - QUICK START
+============================================
+
+PROBLEM: Prometheus shows "No data queried yet"
+SOLUTION: Start the metrics server first
+
+OPTION 1: Start Test Metrics Server (Easiest)
+----------------------------------------------
+1. Open PowerShell in this folder:
+   cd mlops_integration/RL_TRAINING_PROMETHEUS
+
+2. Run the start script:
+   .\start_metrics.ps1
+   
+   OR manually:
+   python start_metrics_server.py
+
+3. Wait 10-15 seconds for metrics to be generated
+
+4. Go to Prometheus: http://127.0.0.1:9090
+
+5. Try these queries:
+   - sum(rl_training_runs_total{})
+   - rl_training_episode_reward_mean{}
+   - rl_training_sharpe_ratio{}
+
+OPTION 2: Run Actual RL Training
+---------------------------------
+The metrics server starts automatically when training runs:
+
+1. cd WealthArena_Production/rl-training
+2. python train.py
+3. Metrics will be available once training starts
+
+VERIFY METRICS ENDPOINT
+-----------------------
+Check if metrics are available:
+http://localhost:8011/metrics
+
+You should see lines starting with:
+# HELP rl_training_runs_total
+# TYPE rl_training_runs_total counter
+
+CHECK PROMETHEUS TARGETS
+------------------------
+1. Go to: http://127.0.0.1:9090/targets
+2. Find "wealtharena_rl_training"
+3. Status should be "UP" (green)
+
+IF STILL NO DATA
+----------------
+1. Make sure metrics server is running (port 8011)
+2. Wait 10-15 seconds after starting
+3. Check Prometheus targets page
+4. Try query: up{job="wealtharena_rl_training"}
+   Should return: 1
+

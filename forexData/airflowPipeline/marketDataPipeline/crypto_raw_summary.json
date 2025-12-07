@@ -1,0 +1,73 @@
+{
+  "download_date": "2025-11-03T09:11:57.796752",
+  "num_symbols": 10,
+  "date_range": {
+    "start": "2022-11-03",
+    "end": "2025-11-03"
+  },
+  "target_currency": "AUD",
+  "years_requested": 3.0,
+  "symbols": {
+    "BTC-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/BTC-AUD_raw.csv",
+      "aud_symbol": "BTC-AUD"
+    },
+    "ETH-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/ETH-AUD_raw.csv",
+      "aud_symbol": "ETH-AUD"
+    },
+    "BNB-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/BNB-AUD_raw.csv",
+      "aud_symbol": "BNB-AUD"
+    },
+    "SOL-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/SOL-AUD_raw.csv",
+      "aud_symbol": "SOL-AUD"
+    },
+    "XRP-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/XRP-AUD_raw.csv",
+      "aud_symbol": "XRP-AUD"
+    },
+    "ADA-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/ADA-AUD_raw.csv",
+      "aud_symbol": "ADA-AUD"
+    },
+    "DOGE-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/DOGE-AUD_raw.csv",
+      "aud_symbol": "DOGE-AUD"
+    },
+    "TON-USD": {
+      "mode": "usd_to_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/TON-AUD_raw.csv",
+      "aud_symbol": "TON-AUD"
+    },
+    "TRX-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/TRX-AUD_raw.csv",
+      "aud_symbol": "TRX-AUD"
+    },
+    "AVAX-USD": {
+      "mode": "native_aud",
+      "file": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto/AVAX-AUD_raw.csv",
+      "aud_symbol": "AVAX-AUD"
+    }
+  },
+  "output_dir": "/opt/airflow/dags/marketDataPipeline/data/raw_crypto",
+  "adls": {
+    "enabled": true,
+    "filesystem": "raw",
+    "prefix": "asxCrypto",
+    "clean_first": false
+  },
+  "notes": [
+    "Daily OHLCV via Yahoo. For AUD: use native -AUD if present, else convert from USD via AUDUSD=X.",
+    "FX series is forward-filled over weekends/holidays to align 7-day crypto."
+  ]
+}

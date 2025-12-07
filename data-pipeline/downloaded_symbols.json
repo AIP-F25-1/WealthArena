@@ -1,0 +1,210 @@
+[
+  {
+    "symbol": "ADA-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "ALGO-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "ATOM-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "AVAX-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "BNB-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "BTC-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "DOGE-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "DOT-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "ETC-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "ETH-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "FIL-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "LINK-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "LTC-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "MATIC-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "SHIB-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "SOL-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "TRX-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "UNI-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "VET-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "XRP-USD",
+    "asset_class": "crypto"
+  },
+  {
+    "symbol": "AUDUSD=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "EURUSD=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "GBPUSD=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "NZDUSD=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "USDCAD=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "USDCHF=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "USDJPY=X",
+    "asset_class": "forex"
+  },
+  {
+    "symbol": "ALI=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "BZ=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "CC=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "CL=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "CT=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "GC=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "HE=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "HG=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "HO=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "KC=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "LE=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "LED=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "NG=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "PA=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "PL=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "RB=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "SB=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "SI=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "ZC=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "ZN=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "ZS=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "ZW=F",
+    "asset_class": "commodities"
+  },
+  {
+    "symbol": "IVV",
+    "asset_class": "etfs"
+  },
+  {
+    "symbol": "QQQ",
+    "asset_class": "etfs"
+  },
+  {
+    "symbol": "SPY",
+    "asset_class": "etfs"
+  }
+]

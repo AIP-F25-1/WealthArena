@@ -1,0 +1,26 @@
+# WealthArena MLOps Requirements
+# Week 1-3 Complete Infrastructure
+
+# MLflow - Experiment tracking and model registry
+mlflow==2.15.0
+
+# Machine Learning
+scikit-learn
+torch
+optuna
+
+# Distributed Computing
+ray[tune]
+
+# Data Processing
+pandas
+numpy
+yfinance
+
+# Monitoring
+prometheus_client
+
+# Utilities
+schedule
+psutil
+textblob

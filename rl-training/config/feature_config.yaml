@@ -1,0 +1,171 @@
+metadata:
+  description: >
+    Feature engineering configuration describing technical, sentiment, macro,
+    and cross-asset correlation features for the Gold layer datasets.
+  updated: 2025-10-08
+
+technical_indicators:
+  price:
+    sma_windows: [5, 10, 20, 50, 200]
+    ema_windows: [5, 12, 26, 50, 200]
+    macd:
+      fast: 12
+      slow: 26
+      signal: 9
+    momentum_windows: [5, 10, 20]
+    rate_of_change_windows: [5, 10, 20]
+  volatility:
+    atr_windows: [14, 21]
+    rolling_std_windows: [10, 20, 63]
+    parkinson_vol_windows: [20, 63]
+    historical_vol_windows: [21, 63, 126]
+  bands:
+    bollinger:
+      window: 20
+      std_dev: 2
+    keltner:
+      window: 20
+      atr_multiplier: 1.5
+  volume:
+    obv: true
+    vwap: true
+    volume_profile_bins: 20
+    abnormal_volume_window: 20
+    rolling_volume_zscore_window: 63
+
+asset_specific:
+  commodities:
+    seasonal_spread_reference: catalog/features/commodities_seasonality.csv
+    roll_yield: true
+    term_structure: true
+  etfs:
+    tracking_error_window: 20
+    premium_discount_window: 5
+    liquidity_metrics:
+      bid_ask_spread: true
+      average_daily_volume_window: 20
+  options:
+    greeks: [delta, gamma, theta, vega]
+    implied_volatility: true
+    skew_window: 20
+    put_call_ratio_window: 10
+  crypto:
+    on_chain_features_reference: catalog/features/crypto_onchain.csv
+
+sentiment:
+  models:
+    news_model: ProsusAI/finbert
+    social_model: finiteautomata/bertweet-base-sentiment-analysis
+  aggregation:
+    buckets:
+      - {window: "15min", resample: "15min"}
+      - {window: "1h", resample: "1h"}
+      - {window: "1d", resample: "1d"}
+      - {window: "1w", resample: "1w"}
+    metrics:
+      - net_sentiment
+      - positive_ratio
+      - negative_ratio
+      - message_count
+      - unique_authors
+      - engagement_score
+  momentum:
+    roc_windows: [3, 5, 10]
+    sma_crossovers:
+      short: 3
+      long: 10
+    ewma_spans: [3, 7, 14]
+    macd:
+      fast: 5
+      slow: 12
+      signal: 6
+  attention:
+    volume_zscore_window: 20
+    sentiment_attention_product: true
+    anomaly_detection:
+      method: isolation_forest
+      contamination: 0.05
+
+macro_features:
+  fred_series:
+    - DGS10
+    - DGS2
+    - T10Y2Y
+    - CPIAUCSL
+    - PPIACO
+    - UNRATE
+    - GDPC1
+    - M2SL
+    - BAMLH0A0HYM2
+    - VIXCLS
+    - FEDFUNDS
+    - TOTL
+    - NAPM
+  aliases:
+    NAPM: ISM_MAN_INDEX
+  transformations:
+    yoy_change: true
+    wow_change: true
+    mom_change: true
+    zscore_windows: [63, 126]
+    composite_indices:
+      leading_indicator:
+        components: [T10Y2Y, ISM_MAN_INDEX, BAMLH0A0HYM2]
+        weights: [0.4, 0.3, 0.3]
+      inflation_pressure:
+        components: [CPIAUCSL, PPIACO, FEDFUNDS]
+        weights: [0.5, 0.3, 0.2]
+  regime_features:
+    hmm_states: 3
+    hmm_features: [returns, volatility, VIXCLS]
+    smoothing_window: 5
+
+correlations:
+  windows:
+    short_term: 63
+    medium_term: 126
+    long_term: 252
+  shrinkage:
+    method: ledoit_wolf
+    fallback: oas
+  pca:
+    retain_variance: 0.9
+  covariance_outputs:
+    store_path: ./data/gold/correlations
+    ensure_psd: true
+
+normalization:
+  methods:
+    - name: rolling_zscore
+      window: 126
+      min_periods: 30
+    - name: min_max
+      range: [-1, 1]
+    - name: robust_scaler
+      quantile_range: [0.1, 0.9]
+  missing_data:
+    forward_fill_limit: 3
+    backward_fill_limit: 1
+    interpolation: time
+    outlier_clip_zscore: 5
+
+feature_sets:
+  default:
+    includes:
+      - price_indicators
+      - volume_indicators
+      - volatility_indicators
+      - sentiment_features
+      - macro_features
+      - correlation_features
+    exclude:
+      - options_greeks  # enable when options data is available
+  meta_controller:
+    includes:
+      - aggregated_agent_signals
+      - macro_features
+      - covariance_summaries
+      - regime_probabilities
+    normalization_override:
+      method: min_max
+      range: [0, 1]

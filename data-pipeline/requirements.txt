@@ -1,0 +1,48 @@
+# ============================================================================
+# IMPORTANT: System Prerequisites
+# ============================================================================
+# Before installing these Python packages, ensure you have:
+#
+# 1. Microsoft ODBC Driver 18 for SQL Server installed
+#    Windows: winget install --id Microsoft.msodbcsql.18 -e
+#    Download: https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server
+#    Verify: odbcad32.exe (check Drivers tab)
+#
+# 2. Python 3.8 or higher
+#    Verify: python --version
+#
+# Without the ODBC driver, pyodbc installation will succeed but database
+# connections will fail with "Data source name not found" error.
+#
+# Installation: pip install -r requirements.txt
+# ============================================================================
+
+# Core data processing
+pandas>=1.5.0
+polars>=0.19.0
+numpy>=1.24.0
+
+# Market data
+yfinance>=0.2.28
+requests>=2.31.0
+
+# File storage (optional - can be used for local file storage)
+azure-storage-file-datalake>=12.12.0
+pyodbc>=4.0.39
+
+# Utilities
+python-dotenv>=1.0.0
+fsspec>=2023.6.0
+pyyaml>=6.0
+
+# Testing & Coverage
+pytest==7.4.3
+pytest-cov==4.1.0
+coverage>=7.6.1
+
+# Optional: RL model inference (for Phase 7)
+# Uncomment when models are trained
+# ray[rllib]>=2.7.0
+# torch>=2.0.0
+# gymnasium>=0.29.0
+

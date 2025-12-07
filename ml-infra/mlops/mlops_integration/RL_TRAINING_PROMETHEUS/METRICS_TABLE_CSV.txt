@@ -1,0 +1,54 @@
+ACTUAL PROMETHEUS METRIC RESULTS - CSV FORMAT
+==============================================
+
+Metric Name,PPO,SAC,DQN,IMPALA,Unit/Labels
+Training Lifecycle Metrics,,,,,
+Training Runs (Started),1.0,-,-,-,Count
+Training Runs (Completed),1.0,-,-,-,Count
+Training Runs (Failed),0.0,-,-,-,Count
+Active Training Status,0.0,-,-,-,0=Inactive 1=Active
+Current Iteration,20.0,-,-,-,Iteration Number
+Total Iterations,-,-,-,-,Count
+Training Duration (Average),-,-,-,-,Seconds
+Episode Metrics,,,,,
+Episode Reward Mean,300.0,-,-,-,Reward Value
+Episode Length Mean,-,-,-,-,Steps
+Total Episodes (Agent 0),20.0,-,-,-,Count
+Total Episodes (Agent 1),20.0,-,-,-,Count
+Total Episodes (Agent 2),20.0,-,-,-,Count
+Total Episodes (Agent 3),-,-,-,-,Count
+Total Episodes (Agent 4),-,-,-,-,Count
+Total Episodes (All),60.0,-,-,-,Count
+Performance Metrics,,,,,
+Sharpe Ratio (Agent 0),2.2,-,-,-,Ratio
+Sharpe Ratio (Agent 1),2.2,-,-,-,Ratio
+Sharpe Ratio (Agent 2),2.2,-,-,-,Ratio
+Sharpe Ratio (Agent 3),-,-,-,-,Ratio
+Sharpe Ratio (Agent 4),-,-,-,-,Ratio
+Average Sharpe Ratio,2.2,-,-,-,Ratio
+Max Drawdown (Agent 0),-,-,-,-,Percentage
+Max Drawdown (Agent 1),-,-,-,-,Percentage
+Max Drawdown (Agent 2),-,-,-,-,Percentage
+Win Rate (Agent 0),-,-,-,-,Percentage (0-100)
+Win Rate (Agent 1),-,-,-,-,Percentage (0-100)
+Win Rate (Agent 2),-,-,-,-,Percentage (0-100)
+Total Return (Agent 0),-,-,-,-,Percentage
+Total Return (Agent 1),-,-,-,-,Percentage
+Total Return (Agent 2),-,-,-,-,Percentage
+Loss Metrics,,,,,
+Policy Loss (Average),-,-,-,-,Loss Value
+Value Loss (Average),-,-,-,-,Loss Value
+Entropy (Average),-,-,-,-,Entropy Value
+Data & Environment Metrics,,,,,
+Data Load Time,-,-,-,-,Seconds
+Environment Steps Total,-,-,-,-,Count
+Environment Steps Rate,-,-,-,-,Steps/Second
+Error Metrics,,,,,
+Training Errors Total,0.0,-,-,-,Count
+Time Metrics,,,,,
+Training Start Timestamp,-,-,-,-,Unix Timestamp
+
+LEGEND:
+- = Metric structure exists but no training executed yet
+All metrics labeled with: algorithm (PPO/SAC/DQN/IMPALA), agent_id (agent_0 through agent_4)
+

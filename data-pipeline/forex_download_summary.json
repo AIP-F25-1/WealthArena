@@ -1,0 +1,18 @@
+{
+  "download_date": "2025-11-13T10:42:31.731977",
+  "num_symbols": 7,
+  "category": "Major",
+  "date_range": {
+    "start": "2022-01-01",
+    "end": "2025-01-01"
+  },
+  "symbols": [
+    "AUDUSD=X",
+    "EURUSD=X",
+    "GBPUSD=X",
+    "NZDUSD=X",
+    "USDCAD=X",
+    "USDCHF=X",
+    "USDJPY=X"
+  ]
+}

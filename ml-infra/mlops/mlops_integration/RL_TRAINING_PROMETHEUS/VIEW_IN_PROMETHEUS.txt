@@ -1,0 +1,120 @@
+HOW TO VIEW METRICS IN PROMETHEUS WEBSITE
+=========================================
+
+STEP 1: START THE METRICS SERVER
+---------------------------------
+Open PowerShell and run:
+
+cd H:\wealtharena\mlops_integration\RL_TRAINING_PROMETHEUS
+python simple_metrics_server.py
+
+Keep this window OPEN!
+
+Wait 15-20 seconds for metrics to generate.
+
+STEP 2: VERIFY METRICS ENDPOINT
+-------------------------------
+Open in browser: http://localhost:8011/metrics
+
+You should see metrics starting with:
+  # HELP rl_training_runs_total
+  # TYPE rl_training_runs_total counter
+  rl_training_runs_total{algorithm="PPO",status="started"} 1.0
+  ... (many more metrics)
+
+STEP 3: CHECK PROMETHEUS TARGETS
+---------------------------------
+Go to: http://127.0.0.1:9090/targets
+
+Find "wealtharena_rl_training" - should show:
+  Status: UP (green)
+  Last Scrape: (recent time)
+
+If DOWN (red):
+  - Make sure metrics server is running
+  - Wait 30 seconds
+  - Refresh page
+
+STEP 4: QUERY METRICS IN PROMETHEUS
+------------------------------------
+Go to: http://127.0.0.1:9090
+
+Try these queries:
+
+1. Total training runs:
+   sum(rl_training_runs_total{})
+
+2. Active training:
+   sum(rl_training_active{})
+
+3. Episode reward:
+   rl_training_episode_reward_mean{}
+
+4. Sharpe ratio:
+   rl_training_sharpe_ratio{}
+
+5. Current iteration:
+   rl_training_current_iteration{}
+
+6. Total episodes:
+   sum(rl_training_episodes_total{})
+
+7. Win rate:
+   rl_training_win_rate{}
+
+8. Total return:
+   rl_training_total_return{}
+
+STEP 5: VIEW GRAPHS
+-------------------
+For any query:
+1. Enter query
+2. Click "Execute"
+3. Click "Graph" tab
+4. Set time range: "Last 1 hour"
+5. You should see graphs!
+
+QUERIES FOR ALL MODELS
+----------------------
+
+By Algorithm:
+  sum by (algorithm) (rl_training_runs_total{})
+  avg by (algorithm) (rl_training_sharpe_ratio{})
+  sum by (algorithm) (rl_training_iterations_total{})
+
+By Agent:
+  rl_training_sharpe_ratio{}
+  rl_training_win_rate{}
+  rl_training_total_return{}
+
+Specific Algorithm:
+  rl_training_episode_reward_mean{algorithm="PPO"}
+  rl_training_sharpe_ratio{algorithm="SAC"}
+  rl_training_current_iteration{algorithm="PPO"}
+
+Specific Agent:
+  rl_training_sharpe_ratio{agent_id="agent_0"}
+  rl_training_win_rate{agent_id="agent_1"}
+
+Combined:
+  rl_training_sharpe_ratio{algorithm="PPO", agent_id="agent_0"}
+
+TROUBLESHOOTING
+---------------
+
+No data in Prometheus?
+1. Is metrics server running? (Check the PowerShell window)
+2. Can you access http://localhost:8011/metrics?
+3. Is Prometheus target UP? (Check /targets page)
+4. Wait 15-20 seconds after starting server
+
+Still no data?
+- Restart metrics server
+- Check Prometheus config
+- Verify port 8011 is not blocked
+
+IMPORTANT
+---------
+Keep the metrics server window OPEN while viewing in Prometheus!
+If you close it, metrics will disappear.
+

@@ -1,0 +1,140 @@
+metadata:
+  description: >
+    Configuration for comprehensive backtesting, walk-forward optimization,
+    Monte Carlo simulation, and stress testing.
+  updated: 2025-10-08
+
+backtesting:
+  data_path: ./data/gold/features
+  start_date: "2016-01-01"
+  end_date: "2025-10-01"
+  initial_capital: 1_000_000
+  rebalance_frequency: "1d"
+  benchmark:
+    symbol: "^GSPC"
+    data_source: yfinance
+  transaction_cost_model: default
+  market_impact_model: square_root
+  slippage_model: volatility_based
+
+walk_forward:
+  mode: sliding
+  in_sample_window_days: 252
+  out_of_sample_window_days: 63
+  step_size_days: 63
+  purge_days: 5
+  embargo_days: 5
+  metrics:
+    - annualized_return
+    - sharpe_ratio
+    - max_drawdown
+    - calmar_ratio
+    - sortino_ratio
+  parameter_logging: true
+
+transaction_costs:
+  stocks:
+    commission_rate: 0.001
+    slippage_rate: 0.0005
+    spread_method: corwin_schultz
+  forex:
+    spread_pips: 2
+    commission_rate: 0.0002
+  crypto:
+    maker_fee: 0.001
+    taker_fee: 0.0015
+    slippage_rate: 0.0007
+  commodities:
+    commission_rate: 0.0005
+    slippage_rate: 0.0003
+  options:
+    commission_per_contract: 0.65
+    slippage_rate: 0.001
+
+market_impact:
+  method: kyle_lambda
+  lambda_window: 63
+  adv_participation_limit: 0.2
+  square_root_coefficient: 0.1
+
+monte_carlo:
+  simulations: 10000
+  seed: 123
+  methods:
+    - historical_bootstrap
+    - block_bootstrap
+    - parametric_student_t
+    - garch_filtered
+  block_bootstrap:
+    block_size: 20
+  garch:
+    p: 1
+    q: 1
+    distribution: student_t
+  var_levels: [0.95, 0.99]
+
+stress_tests:
+  scenarios:
+    - name: global_financial_crisis
+      start: "2007-07-01"
+      end: "2009-06-30"
+    - name: covid_crash
+      start: "2020-02-01"
+      end: "2020-06-30"
+    - name: inflation_shock
+      type: custom
+      shocks:
+        inflation: +0.03
+        bond_yields: +0.015
+        equity_return: -0.1
+    - name: liquidity_crunch
+      type: custom
+      shocks:
+        spreads: +0.005
+        slippage: +0.003
+        turnover_limit: 0.5
+
+performance_metrics:
+  aggregate:
+    - cumulative_return
+    - annualized_return
+    - annualized_volatility
+    - sharpe_ratio
+    - sortino_ratio
+    - calmar_ratio
+    - max_drawdown
+    - average_drawdown_duration
+    - hit_rate
+    - turnover
+  risk:
+    - value_at_risk
+    - conditional_value_at_risk
+    - downside_deviation
+    - tail_ratio
+  attribution:
+    - factor_contribution
+    - brinson_allocation
+  statistical_tests:
+    - deflated_sharpe_ratio
+    - probability_of_backtest_overfitting
+    - student_t_test
+    - bootstrap_confidence_interval
+
+regime_analysis:
+  regime_source: ./data/gold/regimes
+  evaluate_by_regime: true
+  regimes:
+    - bull
+    - bear
+    - sideways
+  smoothing_window: 5
+
+reporting:
+  output_dir: ./results/backtests
+  generate_html: true
+  generate_pdf: false
+  export_csv: true
+  include_equity_curves: true
+  include_drawdowns: true
+  include_allocation_plots: true
+  include_var_cvar: true

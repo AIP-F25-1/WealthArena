@@ -1,0 +1,59 @@
+name: sonarcloud
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for accurate blame/PR decoration
+
+      # ---------- JS/TS (Frontend) ----------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install & test (frontend) with coverage
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test -- --coverage --watchAll=false || true
+
+      # ---------- Python (Backend) ----------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install & test (backend) with coverage
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pytest --maxfail=1 --disable-warnings -q --cov=. --cov-report=xml:coverage.xml || true
+
+      # ---------- Optional: other services ----------
+      # chatbot, rl-service, etc. Run their tests here and output coverage to lcov.info or coverage.xml
+
+      # ---------- Collect coverage to expected locations ----------
+      - name: Aggregate coverage
+        run: |
+          mkdir -p coverage
+          # JS/TS coverage (expected as coverage/lcov.info at repo root)
+          [ -f frontend/coverage/lcov.info ] && cp frontend/coverage/lcov.info coverage/lcov.info || true
+          # Python coverage is already matched by **/coverage.xml from sonar-project.properties
+
+      # ---------- SonarCloud scan ----------
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # needed for PR decoration
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # create in SonarCloud and add as repo secret
+
